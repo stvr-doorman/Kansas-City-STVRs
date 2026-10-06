@@ -11,11 +11,11 @@ const amenityIconHtml = key => customAmenityIcons[key]
 const communityStatusNames = {no_license_at_address:'Community submitted: no license at address',license_at_address:'Community submitted: license at address',undetermined:'Undetermined · not matched to address yet'};
 const ESTIMATED_STVR_FEE=1170;
 let listings=[], permits=[], report, visible=[], selectedHost='', selectedHostMetric='', map, popup, emojiMarkers=[], refreshTimer;
-const permitGrid = new Map(), addressCache = new Map();
+const permitGrid = new Map(), addressCache = new Map(), connectionLabelGroups=new Map(), fallbackParcelLookups=new Map();
 let currentPermits=[], parcelManifest, addressRequest=0;
 let spatial={available:false}, balance=[], balanceKey=null;
 let selectedListing=null, hoveredPrivacyId=null, selectedPartyCombo='', selectedPartyRequireCapacity=false, pendingHostKey='';
-let licensedParcels=null, permitParcels=null, activeListingPointIndex=null;
+let nameMatchingData={},parcelMatchingData=null, permitSavedDetails=null, permitLocationPoints=null, licensedParcels=null, permitParcels=null, activeListingPointIndex=null;
 let hostSortKey='total',hostSortDirection='desc';
 const leeway = () => Number($('leeway').value);
 const edgeBuffer = () => Number($('edgeBuffer').value);
@@ -71,7 +71,7 @@ function updateEyes() {
   }
 }
 const potentiallyLicensed = l => !l.likely_hotel && l.registration_class === 'unmatched';
-const likelyUnlicensed = l => numberMode() ? l.likely_unlicensed_number === true : spatial.available && Spatial.likelyUnlicensed(l,leeway(),edgeBuffer(),parcelTolerance());
+const likelyUnlicensed = l => numberMode() ? l.likely_unlicensed_number === true && !l.noncurrent_permit_at_permitted_address : spatial.available && Spatial.likelyUnlicensed(l,leeway(),edgeBuffer(),parcelTolerance());
 
 function ring(point, meters, steps=40) {
   const [lon,lat]=point, angular=meters/6371008.8, phi=lat*Math.PI/180, lambda=lon*Math.PI/180;
@@ -128,16 +128,28 @@ function overCapacityFlag(listing) {
   return ViolationStats.overOccupancy(listing,!$('includeLargeOverCapacity').checked,$('excludeMultipleOverCapacity').checked);
 }
 function updateInventoryEstimate(){
-  const unique=[...new Map(listings.map(l=>[l.listing_id,l])).values()],total=unique.length,hotels=unique.filter(l=>l.likely_hotel).length,current=permits.filter(p=>p.status==='current').length,count=Math.max(0,total-hotels-current);
-  $('potentiallyLicensedCount').textContent=`${unique.filter(potentiallyLicensed).length.toLocaleString()} potentially licensed`;
-  $('potentiallyLicensedCount').title='Listings showing a permit number absent from CompassKC license list; licensing remains unverified. Includes listings without coordinates, independent of display filters.';
-  const percent=total?(100*count/total).toFixed(1)+'%':'N/A',money=n=>n.toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0});
-  $('potentiallyUnlicensedCount').textContent=`${count.toLocaleString()} likely unlicensed (${percent})`;
-  $('potentiallyUnlicensedCount').title=`Inventory estimate: ${total.toLocaleString()} listings − ${hotels.toLocaleString()} likely hotels − ${current.toLocaleString()} current permits = ${count.toLocaleString()}. Includes listings without coordinates; independent of filters. Does not identify individual unlicensed listings.`;
-  $('potentialRevenueButton').textContent=`Potential license revenue shortfall ${money(count*ESTIMATED_STVR_FEE)}`;
-  $('revenueEquation').textContent=`${total.toLocaleString()} listings − ${hotels.toLocaleString()} likely hotels − ${current.toLocaleString()} current permits = ${count.toLocaleString()} potentially unlicensed (${percent} of all listings). ${count.toLocaleString()} × $${ESTIMATED_STVR_FEE} = ${money(count*ESTIMATED_STVR_FEE)} potential license revenue shortfall.`;
-  $('revenueSnapshotNote').textContent=`Snapshot date: ${report.as_of}. This inventory estimate includes listings without coordinates and is independent of display filters. It assumes one current permit per non-hotel listing, clamps negative differences to zero, and uses a $${ESTIMATED_STVR_FEE} fee. It does not identify or verify individual unlicensed listings.`;
+  const current=permits.filter(p=>p.status==='current').length;
+  const endpoints=[Number($('edgeBuffer').min),Number($('edgeBuffer').max)].map(buffer=>{
+    const items=[...new Map(filterListings(false,false,buffer).map(l=>[l.listing_id,l])).values()];
+    const total=items.length,hotels=items.filter(l=>l.likely_hotel).length,count=Math.max(0,total-hotels-current);
+    return {buffer,total,hotels,count,percent:total?100*count/total:0};
+  });
+  const low=Math.min(...endpoints.map(e=>e.count)),high=Math.max(...endpoints.map(e=>e.count));
+  const pctLow=Math.min(...endpoints.map(e=>e.percent)),pctHigh=Math.max(...endpoints.map(e=>e.percent));
+  const fmt=n=>n.toLocaleString(),money=n=>n.toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0});
+  const range=low===high?fmt(low):`${fmt(low)}–${fmt(high)}`;
+  const percent=pctLow===pctHigh?`${pctLow.toFixed(1)}%`:`${pctLow.toFixed(1)}–${pctHigh.toFixed(1)}%`;
+  $('potentiallyLicensedCount').textContent=`${visible.filter(potentiallyLicensed).length.toLocaleString()} potentially licensed`;
+  $('potentiallyLicensedCount').title='Filtered listing dots showing a permit number absent from CompassKC; licensing remains unverified. Includes dots outside the current map view.';
+  $('potentiallyUnlicensedCount').textContent=`Current estimate: up to ~${fmt(high)} potentially unlicensed`;
+  const equation=endpoints.map(e=>`Edge buffer ${e.buffer>0?'+':''}${e.buffer} m: ${fmt(e.total)} filtered listings − ${fmt(e.hotels)} likely hotels − ${fmt(current)} current city permits = ${fmt(e.count)} potentially unlicensed (${e.percent.toFixed(1)}%).`).join(' ');
+  $('potentiallyUnlicensedCount').title=equation+' Other active filters are retained; map viewport does not affect this range. This inventory estimate does not identify individual unlicensed listings.';
+  const revenueLow=money(low*ESTIMATED_STVR_FEE),revenueHigh=money(high*ESTIMATED_STVR_FEE),revenue=low===high?revenueLow:`${revenueLow}–${revenueHigh}`;
+  $('potentialRevenueButton').textContent=`Potential license revenue shortfall ${revenue}`;
+  $('revenueEquation').textContent=equation+` ${range} × $${ESTIMATED_STVR_FEE} = ${revenue} potential license revenue shortfall.`;
+  $('revenueSnapshotNote').textContent=`Snapshot date: ${report.as_of}. Range uses the minimum and maximum edge buffers with other active filters, regardless of viewport. Unmapped listings are excluded. It subtracts all current city permits, assumes one permit per non-hotel listing, and clamps negative differences to zero. It does not verify individual listing authorization.`;
 }
+
 function updateViolationStats() {
   const excludeLarge=!$('includeLargeOverCapacity').checked,excludeMultiple=$('excludeMultipleOverCapacity').checked;
   $('statsExcludeLarge').checked=excludeLarge;$('statsExcludeMultiple').checked=excludeMultiple;
@@ -158,7 +170,7 @@ function updateViolationStats() {
   const likely=known.filter(likelyUnlicensed).length;
   updateInventoryEstimate();
   $('likelyStatsEquation').textContent=numberMode()
-    ?`${fmt(likely)} listings without a current registration number ÷ ${fmt(known.length)} non-hotel listings with saved text that are not exempt = ${known.length?(100*likely/known.length).toFixed(1)+'%':'N/A'}. ${fmt(nonHotels.length-known.length)} listings excluded (exempt or no saved text). A listing counts when it shows no registration number or a non-current one. Numbers missing from CompassKC count separately as potentially licensed.`
+    ?`${fmt(likely)} listings without a current registration number ÷ ${fmt(known.length)} non-hotel listings with saved text that are not exempt = ${known.length?(100*likely/known.length).toFixed(1)+'%':'N/A'}. ${fmt(nonHotels.length-known.length)} listings excluded (exempt or no saved text). A listing counts when it shows no registration number or a non-current one without a current permit at the matched property. Listings citing expired permits at currently permitted properties are shown separately as listed permit expired, property permit renewed. Numbers missing from CompassKC count separately as potentially licensed.`
     :spatial.available
     ?`${fmt(likely)} likely-unlicensed listings ÷ ${fmt(known.length)} spatially assessable non-hotel listings = ${known.length?(100*likely/known.length).toFixed(1)+'%':'N/A'}. ${fmt(nonHotels.length-known.length)} unknown spatial results excluded. Privacy leeway +${leeway()}%; parcel tolerance ${parcelTolerance().toFixed(2)} m; edge buffer ${edgeBuffer()} m.`
     :'Spatial data unavailable; no likely-unlicensed classification calculated.';
@@ -203,15 +215,82 @@ function matchesPermitStatus(listing,status){
   const matches=listing.matched_permits||[];
   return status==='known'?matches.length>0:matches.some(p=>p.status===status);
 }
-function filterListings(skipAuto=false, includeLowPriority=false) {
+const screeningNameCache=new WeakMap(),screeningNameLookups=new Map();
+let screeningLookupRunning=false;
+function screeningNames(listing){
+  const live=fallbackParcelLookups.get(listing.listing_id)?.data||screeningNameLookups.get(listing.listing_id)?.data;
+  const previous=screeningNameCache.get(listing);
+  if(previous&&previous.live===live)return previous.rows;
+  const geometry=collection([...(parcelMatchingData?.features||[]),...(live?.features||[])]);
+  const rows=PermitProperties.candidates(listing,geometry,nameMatchingData,550).filter(row=>row.type!=='distance');
+  screeningNameCache.set(listing,{live,rows});return rows;
+}
+function parcelHasAnyPermit(row){
+  return [row.source_parcel,row.parcel].filter(Boolean).some(id=>anyPermitParcels.has(normalizeParcel(id)))
+    ||(permitParcels?.features||[]).some(f=>normalizeParcel(f.properties.source_parcel)===normalizeParcel(row.source_parcel||row.parcel));
+}
+async function ensureScreeningNameCoverage(){
+  if(!$('nameParcelNoPermit').checked||screeningLookupRunning)return;
+  const queue=listings.filter(l=>l.point&&needsParcelFallback(l)&&!screeningNameLookups.has(l.listing_id)&&!fallbackParcelLookups.get(l.listing_id)?.data);
+  if(!queue.length)return;
+  screeningLookupRunning=true;
+  const total=queue.length;
+  let completed=0,failed=0;
+  const status=$('nameParcelStatus');
+  const refresh=()=>{status.textContent=`Checking city parcel owners: ${completed}/${total}${failed?` · ${failed} unavailable`:''}`;};
+  refresh();
+  await Promise.all(Array.from({length:4},async()=>{
+    while(queue.length&&$('nameParcelNoPermit').checked){
+      const listing=queue.shift();screeningNameLookups.set(listing.listing_id,{pending:true});
+      try{const data=await ParcelCandidates.loadNames(listing,nameMatchingData);screeningNameLookups.set(listing.listing_id,{data});}
+      catch(error){screeningNameLookups.set(listing.listing_id,{error:error.message});failed++;}
+      completed++;refresh();
+      clearTimeout(refreshTimer);refreshTimer=setTimeout(update,250);
+    }
+  }));
+  screeningLookupRunning=false;
+  status.textContent=queue.length?'City owner checks paused.':`City owner checks complete${failed?` · ${failed} unavailable`:''}. Name matches remain uncertain.`;
+  update();
+}
+function noListedPermit(listing){return !listing.registration_text?.trim()&&!detectedPermitList(listing).length;}
+function unlicensedTier(listing){
+  if(listing.likely_hotel||(listing.property_permits||[]).some(p=>p.status==='current'))return -1;
+  const names=screeningNames(listing);
+  if(names.some(row=>currentPermitParcels.has(normalizeParcel(row.source_parcel||row.parcel))))return 0;
+  const nearLimit=Math.max(155,Number(listing.privacy_radius_meters)||0);
+  const nearest=listing.nearest_licensed_parcel_m;
+  if(noListedPermit(listing)&&typeof nearest==='number'&&Number.isFinite(nearest)&&nearest>nearLimit)return 99;
+  if(likelyUnlicensed(listing))return 49.5;
+  return 0;
+}
+function matchesScreeningFilters(listing){
+  if($('noLicenseNumber').checked&&!noListedPermit(listing))return false;
+  if($('nameParcelNoPermit').checked&&!screeningNames(listing).some(row=>!parcelHasAnyPermit(row)))return false;
+  const minimum=Number($('unlicensedCertainty').value);
+  if($('likely').checked||minimum>0)return unlicensedTier(listing)>=minimum;
+  return true;
+}
+function updateScreeningControls(){
+  const value=Number($('unlicensedCertainty').value);
+  const label=value>=99?'Very certain':value>0?'Moderately certain':'Possibly licensed, no match';
+  $('unlicensedCertaintyValue').textContent=label;
+  $('unlicensedCertainty').setAttribute('aria-valuetext',label);
+  const excess=Number($('over').value);
+  $('overValue').textContent=excess?`${excess}+ guests`:'0 · All capacities';
+  $('over').max=6;
+  if(excess>6)$('over').value=6;
+}
+function filterListings(skipAuto=false, includeLowPriority=false, scopeBuffer=null) {
   const query=$('search').value.trim().toLowerCase(), selected=[...document.querySelectorAll('.amenity:checked')].map(e=>e.value);
   const communityStatuses=[...document.querySelectorAll('.community-status:checked')].map(e=>e.value);
   const minimum=Number($('over').value), radius=Number($('radius').value);
   const rentalTypes=new Set([...document.querySelectorAll('.rental-type:checked:not(.low-priority)')].map(input=>input.value));
   const matching=requireCapacity=>listings.filter(l=>l.point && (!query||l.search.includes(query)) && (!selectedHost||hostKey(l)===selectedHost)
-    && (!$('scopeOnly').checked||Spatial.inScope(l,edgeBuffer()))
-    && (!$('likely').checked||likelyUnlicensed(l))
+    && (!(scopeBuffer!==null||$('scopeOnly').checked)||Spatial.inScope(l,scopeBuffer??edgeBuffer()))
+    && matchesScreeningFilters(l)
+    && legendAllowsListing(l)
     && (!$('potentialOnly').checked||potentiallyLicensed(l))
+    && (!$('expiredMajorOnly').checked||(l.matched_permits||[]).some(expiredMajorPermit))
     && matchesPermitStatus(l,$('permitStatusFilter').value)
     && (numberMode()||!$('nearOnly').checked||(typeof l.nearest_licensed_parcel_m==='number'&&l.nearest_licensed_parcel_m<=9.144))
     && communityStatuses.includes(communityStatus(l))
@@ -252,14 +331,21 @@ function resetExploreFilters() {
   $('hostSearch').value='';
   update();
 }
+const expiredMajorPermit=p=>p.status==='expired'&&/STR[ -]*MAJ/i.test(p.permit_number||'');
+const expiredMajorListing=l=>l.registration_class==='expired'&&(l.matched_permits||[]).some(expiredMajorPermit);
 function markerColor(l) {
   if(l.likely_hotel) return '#f97316';
   if(numberMode()){
-    if(overCapacityFlag(l)||likelyUnlicensed(l))return '#dc2626';
-    if(potentiallyLicensed(l))return '#facc15';
+    if(overCapacityFlag(l))return '#dc2626';
+    if(l.cancelled_permit_at_permitted_address)return '#22c55e';
+    if(expiredMajorListing(l))return '#a855f7';
+    if(likelyUnlicensed(l))return '#dc2626';
+    if(potentiallyLicensed(l)||l.noncurrent_permit_at_permitted_address)return '#facc15';
     if(l.registration_class==='current')return '#22c55e';
     return '#e2e8f0';
   }
+  if(l.cancelled_permit_at_permitted_address&&!overCapacityFlag(l))return '#22c55e';
+  if(expiredMajorListing(l)&&!overCapacityFlag(l))return '#a855f7';
   if(l.license_status==='expired') return '#facc15';
   if(l.license_status==='current') return '#22c55e';
   if(overCapacityFlag(l)) return '#fb7185';
@@ -267,11 +353,50 @@ function markerColor(l) {
   return '#e2e8f0';
 }
 function listingFeature(l) {
-  return feature({type:'Point',coordinates:l.displayPoint||l.point},{id:l.listing_id,color:markerColor(l),warning:!!likelyUnlicensed(l),
+  const permittedOverCapacity=!l.likely_hotel&&overCapacityFlag(l)&&(l.property_permits||l.matched_permits||[]).some(p=>p.status==='current');
+  return feature({type:'Point',coordinates:l.displayPoint||l.point},{id:l.listing_id,color:markerColor(l),renewed:permittedOverCapacity||(!!l.noncurrent_permit_at_permitted_address&&!l.cancelled_permit_at_permitted_address&&!l.likely_hotel),renewal_icon:permittedOverCapacity?'permitted-over-capacity':overCapacityFlag(l)?'renewed-over-capacity':expiredMajorListing(l)?'renewed-major-permit':'renewed-permit',warning:!!likelyUnlicensed(l),
     stroke:overCapacityFlag(l)?'#dc2626':'#2563eb',
     label:(l.guests===null?'?':String(l.guests))+(overCapacityFlag(l)?'\n+'+l.over_capacity:'')});
 }
-function sourceData(id,data) { map.getSource(id)?.setData(data); }
+function updateFooterListingCount(){
+  if(!map)return;
+  const count=new Set(visible.map(l=>l.listing_id)).size;
+  $('buildStatus').textContent=`${count.toLocaleString()} visible listings`;
+  $('buildStatus').title='All listing dots allowed by the active filters and edge buffer, including dots outside the current map view. Listings more than 550 m outside Kansas City are excluded.';
+}
+function legendCategory(listing){
+  const p=listingFeature(listing).properties;
+  const colors={'#a855f7':'major','#f97316':'hotel','#22c55e':'current','#facc15':'potential','#dc2626':'warning','#e2e8f0':'unknown'};
+  const split={'renewed-major-permit':'renewed-major','renewed-permit':'renewed','permitted-over-capacity':'permitted-over','renewed-over-capacity':'warning'};
+  return p.renewed?split[p.renewal_icon]:colors[p.color];
+}
+function legendAllowsListing(listing){return [...document.querySelectorAll('.legend-category:checked')].some(input=>input.value===legendCategory(listing));}
+function grayPermitParcel(f){return !['current','expired','revoked','suspended'].includes(f.properties.permit_status);}
+function updateLegendCounts(){
+  const counts=Object.fromEntries(['major','renewed-major','hotel','current','potential','renewed','permitted-over','warning','gray-parcel','unknown','guest-label'].map(key=>[key,0]));
+  const colors={'#a855f7':'major','#f97316':'hotel','#22c55e':'current','#facc15':'potential','#dc2626':'warning','#e2e8f0':'unknown'};
+  const split={'renewed-major-permit':'renewed-major','renewed-permit':'renewed','permitted-over-capacity':'permitted-over','renewed-over-capacity':'warning'};
+  for(const listing of visible){
+    const properties=listingFeature(listing).properties;
+    const category=properties.renewed?split[properties.renewal_icon]:colors[properties.color];
+    if(category)counts[category]++;
+    if(overCapacityFlag(listing))counts['guest-label']++;
+  }
+  if($('parcels').checked&&$('legendGrayParcels').checked){
+    const nearby=new Set(permits.filter(p=>p.point&&nearVisibleListing(p.point)).map(p=>normalizeParcel(p.parcel)));
+    counts['gray-parcel']=new Set((permitParcels?.features||[]).filter(f=>!['current','expired','revoked','suspended'].includes(f.properties.permit_status)
+      &&(numberMode()||!selectedHost||nearby.has(normalizeParcel(f.properties.parcel)))).map(f=>normalizeParcel(f.properties.parcel))).size;
+  }
+  for(const el of document.querySelectorAll('[data-legend-count]'))el.textContent=el.dataset.legendCount==='guest-label'?`(${counts['guest-label'].toLocaleString()} over-capacity listings)`:`(${counts[el.dataset.legendCount].toLocaleString()})`;
+}
+function sourceData(id,data) {
+  if(['connections','permit-links','candidate-connections'].includes(id))data=collection(data.features.filter(f=>f.geometry.type!=='LineString'||f.geometry.coordinates.slice(1).every((point,i)=>distance(f.geometry.coordinates[i],point)<=550)));
+  map.getSource(id)?.setData(data);
+  if(['connections','permit-links','candidate-connections'].includes(id)){
+    connectionLabelGroups.set(id,data.features.filter(f=>f.geometry.type==='LineString'&&f.properties?.uncertain).map(f=>{const a=f.geometry.coordinates[0],b=f.geometry.coordinates.at(-1);return feature({type:'Point',coordinates:[(a[0]+b[0])/2,(a[1]+b[1])/2]},{label:f.properties.reference_label||(['owner_nickname','permit_owner_nickname'].includes(f.properties.method)?(f.properties.name_source==='permit'?'Permit nickname ?':'Parcel nickname ?'):['owner_name','owner_first_name'].includes(f.properties.method)?'Name ?':'?')});}));
+    map.getSource('connection-labels')?.setData(collection([...connectionLabelGroups.values()].flat()));
+  }
+}
 function layerVisibility(ids,on) { for(const id of ids) if(map.getLayer(id)) map.setLayoutProperty(id,'visibility',on?'visible':'none'); }
 function updatePrivacy() {
   const subjects=selectedListing?[selectedListing]:visible;
@@ -279,12 +404,16 @@ function updatePrivacy() {
 }
 
 function update() {
+  ensureScreeningNameCoverage();
+  updateScreeningControls();
   if(numberMode())for(const id of ['warningSymbols','permits','addresses','difference','nearTolerance','nearOnly','coverage','historical','outside'])$(id).checked=false;
   BrowserState.schedule();
   if(!map?.getSource('listings')) return;
   updateExploreClearButton();
+  map.setLayoutProperty('listing-labels','visibility',$('legendGuestLabels').checked?'visible':'none');
   for(const input of document.querySelectorAll('.low-priority:checked'))input.checked=false;
   visible=filterListings();
+  $('expiredMajorCount').textContent=listings.filter(l=>l.point&&(l.matched_permits||[]).some(expiredMajorPermit)).length.toLocaleString();
   activeListingPointIndex=selectedHost?listingPointIndex(visible):null;
   sourceData('listings',collection(visible.map(listingFeature)));
   if(selectedListing&&!visible.some(l=>l.listing_id===selectedListing.listing_id)){popup?.remove();selectedListing=null;}
@@ -297,20 +426,24 @@ function update() {
   layerVisibility(['warning-markers'],$ ('warningSymbols').checked);
   const scoped=listings.filter(l=>l.point&&Spatial.inScope(l,edgeBuffer()));
   updateAutoMatchCounts();
-  $('spatialSummary').textContent=numberMode()?`${scoped.filter(l=>likelyUnlicensed(l)).length.toLocaleString()} likely-unlicensed listings · ${scoped.filter(potentiallyLicensed).length.toLocaleString()} potentially licensed (permit does not show up in license list) · ${scoped.filter(l=>l.likely_unlicensed_number===null||l.likely_unlicensed_number===undefined).length} not assessed (exempt, hotel or no saved text) · ${scoped.length.toLocaleString()} listings in analysis area. Not a confirmed violation.`:spatial.available?`${scoped.filter(l=>likelyUnlicensed(l)).length.toLocaleString()} spatial warnings · ${scoped.filter(l=>Spatial.overlap(l,leeway(),parcelTolerance())===null).length} unknown · ${scoped.length.toLocaleString()} listings in analysis area. ${parcelTolerance()?'Includes 10-yard parcel tolerance (Advanced). ':''}Overlap is not a confirmed license match.`:'Spatial data unavailable; no warnings inferred.';
+  $('spatialSummary').textContent=numberMode()?`${scoped.filter(l=>likelyUnlicensed(l)).length.toLocaleString()} likely-unlicensed listings · ${scoped.filter(potentiallyLicensed).length.toLocaleString()} potentially licensed (permit does not show up in license list) · ${scoped.filter(l=>l.likely_unlicensed_number===null||l.likely_unlicensed_number===undefined).length} not assessed (exempt, hotel or no saved text) · ${scoped.filter(l=>l.noncurrent_permit_at_permitted_address).length.toLocaleString()} listed permit expired, property permit renewed · ${scoped.length.toLocaleString()} listings in analysis area. Not a confirmed violation.`:spatial.available?`${scoped.filter(l=>likelyUnlicensed(l)).length.toLocaleString()} spatial warnings · ${scoped.filter(l=>Spatial.overlap(l,leeway(),parcelTolerance())===null).length} unknown · ${scoped.length.toLocaleString()} listings in analysis area. ${parcelTolerance()?'Includes 10-yard parcel tolerance (Advanced). ':''}Overlap is not a confirmed license match.`:'Spatial data unavailable; no warnings inferred.';
   updateBalance();
   updateViolationStats();
   layerVisibility(['parcel-fill','parcel-line'],$ ('parcels').checked);
   layerVisibility(['heatmap'],$ ('heatmap').checked);
   const displayedPermits=$('historical').checked?permits:currentPermits;
   const nearbyPermits=displayedPermits.filter(p=>p.point&&nearVisibleListing(p.point));
-  sourceData('permit-points',collection($('permits').checked?nearbyPermits.map(p=>feature({type:'Point',coordinates:p.point},{id:p.id,color:p.status==='current'?'#15803d':p.status==='expired'?'#eab308':['revoked','suspended'].includes(p.status)?'#dc2626':'#a78bfa'})):[]));
+  sourceData('permit-points',collection($('permits').checked?nearbyPermits.map(p=>feature({type:'Point',coordinates:p.point},{id:p.id,color:p.status==='current'?'#15803d':p.status==='expired'?(expiredMajorPermit(p)?'#a855f7':'#eab308'):['revoked','suspended'].includes(p.status)?'#dc2626':'#a78bfa'})):[]));
   if(numberMode())sourceData('permit-links',collection(permitParcelLinks(visible)));
-  if(permitParcels){const nearbyParcels=new Set(permits.filter(p=>p.point&&nearVisibleListing(p.point)).map(p=>normalizeParcel(p.parcel)).filter(Boolean));sourceData('parcels',collection($('parcels').checked?permitParcels.features.filter(f=>numberMode()||!selectedHost||nearbyParcels.has(normalizeParcel(f.properties.parcel))):[]));}
+  if(permitParcels){const nearbyParcels=new Set(permits.filter(p=>p.point&&nearVisibleListing(p.point)).map(p=>normalizeParcel(p.parcel)).filter(Boolean));sourceData('parcels',collection($('parcels').checked?permitParcels.features.filter(f=>($('legendGrayParcels').checked||!grayPermitParcel(f))&&(numberMode()||!selectedHost||nearbyParcels.has(normalizeParcel(f.properties.parcel)))):[]));}
   const radius=Number($('radius').value);
   $('radiusValue').textContent=`${radius} m`;
   sourceData('coverage',collection($('coverage').checked&&radius>0?currentPermits.filter(p=>nearVisibleListing(p.point)).map(p=>feature(ring(p.point,radius))):[]));
-  $('counts').textContent=`${visible.length.toLocaleString()} visible · ${report.mapped_listings.toLocaleString()} mapped · ${(report.listings-report.mapped_listings).toLocaleString()} awaiting location`;
+  $('counts').textContent=`${visible.length.toLocaleString()} visible · ${listings.filter(l=>l.point).length.toLocaleString()} mapped · ${listings.filter(l=>!l.point).length.toLocaleString()} awaiting location`;
+  $('parcelMatchRadiusValue').textContent=`${parcelMatchRadius()} m`;
+  if(numberMode()&&selectedListing&&needsParcelFallback(selectedListing))renderFallbackAssociations(selectedListing,popup?.getElement().querySelector('[data-property-associations]'));
+  updateFooterListingCount();
+  updateLegendCounts();
   updateHosts(); updateSearch(); updateSymbols(); updateEyes(); updateAddresses();
 }
 function updateBalance() {
@@ -442,8 +575,26 @@ async function updateAddresses() {
     if(request===addressRequest) sourceData('addresses',collection(tiles.flatMap(t=>t.features)));
   }catch(e){console.error('Parcel addresses:',e);}
 }
-function permitCard(p) {
-  return `<p><b>${esc(p.permit_number||'Permit number unavailable')}</b> <span class="badge ${esc(p.status)}">${esc(p.status)}</span><br>${esc(p.address)}<br>Source status: <b>${esc(p.source_status)}</b><br>Issued: ${esc(p.issued||'Unknown')}<br>Expires: ${esc(p.expiration||'Unknown')}<br>Parcel: ${esc(p.parcel)}<br>${esc(p.type)}<br><a href="${esc(/^https?:\/\//.test(p.source_url)?p.source_url:report.sources.permits)}" target="_blank" rel="noopener">Official permit source</a></p>`;
+function permitDate(value) {
+  const date=String(value||'').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return date?`${date[2]}/${date[3]}/${date[1]}`:'Unknown';
+}
+function permitCard(p, label="") {
+  if(typeof label!=="string")label="";
+  const adverseStatus=["denied","revoked","suspended"].includes(String(p.status||" ").toLowerCase());
+  return `<details class="permit-record"><summary><b>${esc(p.permit_number||'Permit number unavailable')}</b> <span class="badge ${esc(p.status)}" style="background:${adverseStatus?'#dc2626':p.status==='current'?'#22c55e':expiredMajorPermit(p)?'#a855f7':p.status==='expired'?'#facc15':'#e5e7eb'};color:${adverseStatus||expiredMajorPermit(p)?'white':'#111827'}">${esc(p.status)}</span>${label?`<br><span class="small">${esc(label)}</span>`:""}<br><span class="small muted">Issued ${permitDate(p.issued)} → expires ${permitDate(p.expiration)}</span></summary><p>${esc(p.address)}<br>Permit owner/applicant name: ${esc(p.owner||'Unavailable in saved permit data')}<br>Source status: <b>${esc(p.source_status)}</b><br>Parcel: ${esc(p.parcel)}<br>${esc(p.type)}${p.saved_details?.addresses?.length?`<br><b>All addresses in saved city permit details:</b><br>${p.saved_details.addresses.map(esc).join('<br>')}`:''}<br><a href="${esc(/^https?:\/\//.test(p.source_url)?p.source_url:report.sources.permits)}" target="_blank" rel="noopener">Official permit source</a></p></details>`;
+}
+function permitOrder(a,b) {
+  return Number(b.status==='current')-Number(a.status==='current')||String(b.issued||b.expiration||'').localeCompare(String(a.issued||a.expiration||''));
+}
+function permitCards(records) {
+  const properties=new Map();
+  for(const p of records){
+    const key=p.parcel||p.address||p.id;
+    if(!properties.has(key))properties.set(key,[]);
+    properties.get(key).push(p);
+  }
+  return [...properties.values()].map(rows=>`<div class="permit-property"><p class="small"><b>${esc(rows[0].address||'Property address unavailable')}</b>${rows[0].parcel?` · Parcel ${esc(rows[0].parcel)}`:''}</p>${rows.sort(permitOrder).map(permitCard).join('')}</div>`).join('');
 }
 function detectedPermitList(listing) {
   return Array.isArray(listing?.permit_numbers) ? listing.permit_numbers.filter(Boolean) : [];
@@ -501,7 +652,7 @@ function showNearbyPermitListings(permit, container) {
 const matchLabels={license_number:'License number',owner_name:'Full owner / host name',owner_first_name:'Owner / host first name',owner_nickname:'Owner / host nickname',permit_owner_name:'Full permit owner / host name',permit_owner_first_name:'Permit owner / host first name',permit_owner_nickname:'Permit owner / host nickname',distance:'Distance only'};
 function associationOrder(a,b){const rank=m=>m.type==='license_number'?0:m.type==='distance'?2:1;return rank(a)-rank(b)||(a.distance_m??Infinity)-(b.distance_m??Infinity)||String(a.listing_id||a.parcel||'').localeCompare(String(b.listing_id||b.parcel||''));}
 function hotelReportsHtml(listing){return (listing.hotel_reports||[]).map(r=>`<p><b>${r.source==='user_submitted'?'User submitted hotel':'Manually marked hotel'}</b>${r.hotel_name?` · ${esc(r.hotel_name)}`:''}${r.address?`<br>User-submitted address (not verified): ${esc(r.address)}`:''}${/^https?:\/\//i.test(r.proof_url||'')?`<br><a href="${esc(r.proof_url)}" target="_blank" rel="noopener">Hotel proof ↗</a>`:''}${/^https?:\/\//i.test(r.source_url||'')?`<br><a href="${esc(r.source_url)}" target="_blank" rel="noopener">Public submission source ↗</a>`:''}</p>`).join('');}
-function matchBadge(m){const color=m.type==='license_number'?'#166534':m.type==='distance'?'#475569':m.type.includes('nickname')?'#7e22ce':m.type.includes('first_name')?'#a16207':'#1d4ed8';return `<span style="background:${color};color:white;padding:2px 5px;border-radius:4px">${esc(matchLabels[m.type]||m.type)}</span>`;}
+function matchBadge(m){const color=m.type==='license_number'?'#166534':m.type==='distance'?'#475569':m.type.includes('nickname')?'#a16207':m.type.includes('first_name')?'#a16207':'#1d4ed8';return `<span style="background:${color};color:white;padding:2px 5px;border-radius:4px">${esc(matchLabels[m.type]||m.type)}</span>`;}
 let activeCardState=null,matchPinned=false,matchContext=null,matchRows=[];
 function exitMatchView(){matchPinned=false;matchContext=null;matchRows=[];clearCandidatePreview(true);sourceData('name-matches',collection([]));document.querySelectorAll('[data-exit-matches]').forEach(e=>e.remove());BrowserState.schedule();}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&matchPinned){e.preventDefault();exitMatchView();}});
@@ -515,7 +666,7 @@ function pinCandidate(listing,row,fit=true){
 }
 function colorNameMatches(listing,rows){
   matchRows=rows;
-  const features=rows.filter(r=>r.type.includes('owner_')&&r.geometry).map(r=>feature(r.geometry,{parcel:r.parcel,color:r.type.includes('nickname')?'#7e22ce':r.type.includes('first_name')?'#a16207':'#1d4ed8'}));
+  const features=rows.filter(r=>r.type.includes('owner_')&&r.geometry).map(r=>feature(r.geometry,{parcel:r.parcel,color:r.type.includes('nickname')?'#eab308':r.type.includes('first_name')?'#a16207':'#1d4ed8'}));
   sourceData('name-matches',collection(features));
 }
 function collapseMapPanels(){
@@ -560,13 +711,16 @@ function candidateViewPadding(){
   return best?{left:best.left,right:viewport.width-best.right,top:best.top,bottom:viewport.height-best.bottom}:{left:margin,right:margin,top:margin,bottom:margin};
 }
 async function showProperty(property, position){
-  if(matchPinned&&matchContext){const listing=listings.find(l=>l.listing_id===matchContext.listing_id);if(listing){const row=matchRows.find(r=>normalizeParcel(r.parcel)===normalizeParcel(property.parcel))||{...property,point:Array.isArray(position)?position:[position.lng,position.lat],type:'distance'};pinCandidate(listing,row);return;}}
+  if(matchPinned&&matchContext&&!property.parcel_first){const listing=listings.find(l=>l.listing_id===matchContext.listing_id);if(listing){const row=matchRows.find(r=>normalizeParcel(r.parcel)===normalizeParcel(property.parcel))||{...property,point:Array.isArray(position)?position:[position.lng,position.lat],type:'distance'};pinCandidate(listing,row);return;}}
   resetMatchInteraction();collapseMapPanels();
-  const nextCardState={type:'property',property:{parcel:property.parcel,address:property.address,owner:property.owner,id:property.id},position:Array.isArray(position)?position:[position.lng,position.lat]};
+  const nextCardState={type:'property',property:{parcel:property.parcel,address:property.address,owner:property.owner,id:property.id,parcel_first:property.parcel_first},position:Array.isArray(position)?position:[position.lng,position.lat]};
   const canonical=permitParcels?.features.find(f=>normalizeParcel(f.properties.parcel)===normalizeParcel(property.parcel))?.properties||property;
   const parcel=String(canonical.parcel||''), records=permits.filter(p=>parcel?(p.parcels||[p.parcel]).some(v=>normalizeParcel(v)===normalizeParcel(parcel)):p.id===property.id);
   const primary=records.find(p=>p.status==='current')||records[0];
-  popup?.remove();const current=new maplibregl.Popup({closeOnClick:false,maxWidth:'400px',className:'listing-popup-centered map-card-centered'}).setLngLat(position).setHTML(`<h3>${primary?'License record':'Property record'}</h3><p><b>${esc(primary?.address||canonical.address)}</b>${primary?`<br><span class="badge ${esc(primary.status)}">${esc(primary.status)}</span> · ${esc(primary.permit_number||'Permit number unavailable')}<br>${esc(primary.type)}`:''}</p>${records.length?`<details><summary>License details (${records.length})</summary>${records.map(permitCard).join('')}</details>`:''}<details><summary>Parcel details</summary><p>${esc(canonical.address)}<br>Parcel: ${esc(parcel)}<br>Property owner: ${esc(canonical.owner||'Unavailable')}</p></details>${records.length&&!numberMode()?`<details><summary>Possibly associated listings</summary><p class="small muted">Auto matched, not verified. Name matches first, then distance-only candidates, nearest first. All candidates require verification.</p><div data-associations style="max-height:260px;overflow-y:auto">Loading…</div></details>`:''}<details><summary>Forms</summary><button type="button" data-complaint>Complaint form (with evidence)</button></details>`).addTo(map);popup=current;activeCardState=nextCardState;current.on('close',resetMatchInteraction);
+  const parcelFirst=property.parcel_first===true;
+  const parcelDetails=`<details ${parcelFirst?'open':''}><summary>Parcel details${parcelFirst?' · owner/name association ?':''}</summary><p>${esc(canonical.address)}<br>Parcel: ${esc(parcel)}<br>Property owner: ${esc(canonical.owner||'Unavailable')}</p></details>`;
+  const licenseDetails=records.length?`<details><summary>License details (${records.length})</summary>${permitCards(records)}</details>`:'';
+  popup?.remove();const current=new maplibregl.Popup({closeOnClick:false,maxWidth:'400px',className:'listing-popup-centered map-card-centered'}).setLngLat(position).setHTML(`<h3>${parcelFirst?'Parcel record · uncertain owner/name match ?':primary?'License record':'Property record'}</h3><p><b>${esc(primary?.address||canonical.address)}</b>${primary&&!parcelFirst?`<br><span class="badge ${esc(primary.status)}">${esc(primary.status)}</span> · ${esc(primary.permit_number||'Permit number unavailable')}<br>${esc(primary.type)}`:''}</p>${parcelFirst?parcelDetails+licenseDetails:licenseDetails+parcelDetails}${records.length&&!numberMode()?`<details><summary>Possibly associated listings</summary><p class="small muted">Auto matched, not verified. Name matches first, then distance-only candidates, nearest first. All candidates require verification.</p><div data-associations style="max-height:260px;overflow-y:auto">Loading…</div></details>`:''}<details><summary>Forms</summary><button type="button" data-complaint>Complaint form (with evidence)</button></details>`).addTo(map);popup=current;activeCardState=nextCardState;current.on('close',resetMatchInteraction);
 
   bindComplaintButton(current.getElement(),canonical.address,primary?.point||canonical.point||(Array.isArray(position)?position:[position.lng,position.lat]),'');
   const container=current.getElement().querySelector('[data-associations]');
@@ -595,7 +749,7 @@ function previewCandidate(listing,row,fit=true){
   const highlights=[feature({type:'Point',coordinates:target},{role:'property'}),feature({type:'Point',coordinates:listing.point},{role:'airbnb'})];
   if(geom.type!=='Point')highlights.unshift(feature(geom,{parcel:row.parcel}));
   sourceData('candidate-preview',collection(highlights));
-  sourceData('candidate-connections',collection([feature({type:'LineString',coordinates:[listing.point,target]})]));
+  sourceData('candidate-connections',collection(distance(listing.point,target)<=550?[feature({type:'LineString',coordinates:[listing.point,target]},{uncertain:true,method:row.type})]:[]));
   const bounds=new maplibregl.LngLatBounds(listing.point,listing.point);bounds.extend(target);
   const visit=coords=>{if(typeof coords[0]==='number')bounds.extend(coords);else coords.forEach(visit);};if(row.geometry?.coordinates)visit(row.geometry.coordinates);
   if(!fit)return;
@@ -603,9 +757,52 @@ function previewCandidate(listing,row,fit=true){
 }
 function bindCandidatePreview(button,listing,row){button.onmouseenter=button.onfocus=()=>pinCandidate(listing,row);button.onmouseleave=()=>{};button.onblur=()=>{};}
 async function renderListingAssociations(listing,container){
+  if(numberMode()){renderFallbackAssociations(listing,container);return;}
   const rows=[...(listing.preliminary_matches||[])];container.textContent='Loading nearby properties…';
   try{for(const p of await Reporting.loadCandidates(listing)){const existing=rows.filter(m=>normalizeParcel(m.parcel)===normalizeParcel(p.parcel));if(existing.length)existing.forEach(m=>{m.point=p.point;m.geometry=p.geometry;});else rows.push({...p,type:'distance'});}}catch(e){container.textContent=`Nearby properties unavailable: ${e.message}`;return;}
   container.replaceChildren();for(const row of rows.sort(associationOrder)){const button=document.createElement('button');button.className='license-listing-candidate';button.innerHTML=`${candidateBadges(listing,row)}<strong>${esc(row.address)}</strong><span>Owner: ${esc(row.owner||'Unavailable')} · ${row.distance_m==null?'Distance unavailable':row.distance_m.toFixed(1)+' m to parcel boundary'}</span>`;bindCandidatePreview(button,listing,row);button.onclick=()=>{pinCandidate(listing,row);colorNameMatches(listing,rows);};container.append(button);}for(const button of container.querySelectorAll('button')){const enter=button.onmouseenter;button.onmouseenter=button.onfocus=()=>{enter();colorNameMatches(listing,rows);};}if(!rows.length)container.textContent='No candidates found.';
+}
+function needsParcelFallback(listing){return permitParcelLinks([listing]).length===0;}
+function parcelMatchRadius(){return Math.min(550,Math.max(160,Number($('parcelMatchRadius').value)||160));}
+function renderFallbackAssociations(listing,container){
+  if(!container)return;
+  const radiusLabel=container.parentElement.querySelector('[data-parcel-radius]');if(radiusLabel)radiusLabel.textContent=parcelMatchRadius();
+  let lookup=fallbackParcelLookups.get(listing.listing_id);
+  if(!lookup){
+    lookup={pending:true,data:null,error:null};fallbackParcelLookups.set(listing.listing_id,lookup);
+    ParcelCandidates.load(listing).then(data=>{lookup.pending=false;lookup.data=data;if(selectedListing===listing&&container.isConnected)renderFallbackAssociations(listing,container);}).catch(error=>{lookup.pending=false;lookup.error=error.message;if(selectedListing===listing&&container.isConnected)renderFallbackAssociations(listing,container);});
+  }
+  const geometry=collection([...(parcelMatchingData?.features||[]),...(lookup.data?.features||[])]);
+  const rows=PermitProperties.candidates(listing,geometry,nameMatchingData,parcelMatchRadius());
+  const section=container.closest('details');
+  if(section){
+    const summary=section.querySelector(':scope > summary');
+    if(summary&&!summary.dataset.expansionBound){
+      summary.dataset.expansionBound='true';
+      summary.addEventListener('click',()=>{section.dataset.expansionChosen='true';});
+    }
+    if(!section.dataset.expansionChosen){
+      const autoRadius=Math.max(155,Number(listing.privacy_radius_meters)||0);
+      const closeNames=rows.filter(row=>row.type!=='distance'&&row.distance_m<=autoRadius);
+      section.open=closeNames.length>=1&&closeNames.length<=2;
+    }
+  }
+  matchRows=rows;container.replaceChildren();
+  for(const row of rows){
+    const button=document.createElement('button');button.className='license-listing-candidate';
+    button.innerHTML=`<b>Parcel details</b><br>${esc(row.address)}<br>Parcel: ${esc(row.source_parcel||row.parcel)}<br>Owner: ${esc(row.owner||'Unknown')}<br>${matchBadge(row)} <b>?</b> · ${row.distance_m.toFixed(1)} m${row.within_privacy_radius?' · inside Airbnb privacy radius':''}`;
+    button.onclick=()=>{pinCandidate(listing,row);colorNameMatches(listing,rows);};container.append(button);
+    const relatedPermits=permits.filter(p=>(p.parcels||[p.parcel]).some(id=>[row.parcel,row.source_parcel].filter(Boolean).map(normalizeParcel).includes(normalizeParcel(id)))).sort((a,b)=>(b.status==='current')-(a.status==='current'));
+    if(relatedPermits.length){const details=document.createElement('details');details.innerHTML=`<summary>Permits at this candidate parcel (${relatedPermits.length}) ?</summary><p class="small muted">These belong to the candidate parcel; they are not direct matches to the listing’s displayed registration.</p>${permitCards(relatedPermits)}`;container.append(details);}
+    if(row.type!=='distance'){
+      const open=document.createElement('button');open.className='license-listing-candidate';open.textContent=`Open parcel details first · ${row.type==='owner_nickname'?'nickname':'name'} match ?`;
+      open.onclick=()=>showProperty({...row,parcel_first:true},row.point);container.append(open);
+    }
+  }
+  if(!rows.length)container.textContent=lookup.pending?'Checking nearby city parcel owners…':lookup.error?'City lookup unavailable; no candidates in saved coverage.':'No owner/name candidates within 550 m or distance candidates within the selected radius.';
+  if(lookup.pending&&rows.length){const note=document.createElement('p');note.className='small muted';note.textContent='Checking additional nearby city parcel owners…';container.append(note);}
+  const nicknameRows=rows.filter(row=>row.type!=='distance');
+  sourceData('candidate-connections',collection(nicknameRows.map(row=>feature({type:'LineString',coordinates:[listing.displayPoint||listing.point,row.point]},{uncertain:true,method:row.type}))));
 }
 function showListing(l, nearbyPermit=null) {
   resetMatchInteraction();const nextCardState={type:'listing',listing_id:l.listing_id};
@@ -626,10 +823,13 @@ function showListing(l, nearbyPermit=null) {
   const detectedCount=Number(l.detected_permit_count??detectedPermitList(l).length);
   const dualCapacity=Boolean(l.dual_license_capacity)||detectedCount===2;
   const titleMentionsTwo=/\btwo\b/i.test(l.title||'');
+  if(overCapacityFlag(l)||dualCapacity)html+=`<p class="small muted" data-capacity-explanation><b>Capacity estimate:</b> ${dualCapacity?'Two-unit screening: min(2 × total bedrooms + 2, 16); units are unverified.':'Per dwelling unit: min(2 × bedrooms + 1, 8), using advertised bedrooms.'} <a href="about_data.html" target="_blank" rel="noopener">Data and occupancy rules ↗</a></p>`;
   if(dualCapacity||titleMentionsTwo)html+=`<details><summary>Capacity estimate caveat</summary><p class="small spatial-warning"><b>Capacity estimate caveat:</b> ${dualCapacity?'Two permit numbers were detected in listing text; the estimate treats them as two units, splits bedrooms between units, and allows up to 8 guests per unit.':'The title mentions “two”, which may refer to multiple units.'} This is an unverified screening assumption, not confirmation of separate licensed units. Please verify the actual unit and bedroom configuration.</p></details>`;
   if(Number(l.bedrooms)>5&&(Number(l.over_capacity)||0)>0)html+=`<p class="small muted">This listing has more than 5 bedrooms. Its over-capacity flag is excluded from filters by default; enable “Include listings with over 5 bedrooms in over-capacity results” to include it.</p>`;
+  /* Disabled for the compact listing card: duplicate detected and matched permit summaries. Remove this comment to restore.
   if(detectedPermitList(l).length) html+=`<p><b>Detected listing permit numbers:</b> ${detectedPermitList(l).map(esc).join(', ')}<br><span class="small muted">These are text matches from the listing and are not the canonical license list.</span></p>`;
   if(actualPermitList(l).length) html+=`<p><b>Actual matched permit records:</b> ${actualPermitList(l).map(esc).join(', ')}</p>`;
+  */
   if(!numberMode()){
   const currentIds=new Set(permits.filter(p=>p.status==='current').map(p=>p.id));
   const proximityStatus=autoMatchStatus(l);
@@ -641,49 +841,98 @@ function showListing(l, nearbyPermit=null) {
   }
   const overlap=numberMode()?null:Spatial.overlap(l,leeway(),parcelTolerance()), effective=numberMode()?null:Spatial.effectiveRadius(l,leeway());
   if(l.likely_hotel)html+=`<details><summary>Hotel screening evidence</summary><p class="hotel-notice"><b>Likely hotel / resort</b> · Excluded from potentially unlicensed counts.<br>${(l.hotel_evidence||[]).map(e=>esc(e.field)+': '+esc(e.evidence)).join('<br>')}</p></details>`;
-  const spatialText=numberMode()?(l.likely_unlicensed_number===true?`⚠️ Likely unlicensed: ${({expired:'registration number belongs to an expired permit',other:'registration number matches a non-current permit',unmatched:'registration number is not on the city list',none:'no registration number shown in the saved listing'})[l.registration_class]||'no current registration'}`:potentiallyLicensed(l)?'Potentially licensed: permit does not show up in license list (CompassKC); not verified':l.likely_unlicensed_number===false?'Registration number matches the CompassKC permit list':`Not assessed (${l.registration_class||'no saved text'})`)+(l.registration_text?` · Listed registration: ${l.registration_text}`:''):l.likely_hotel?'Likely hotel: excluded from potentially unlicensed screening':!spatial.available?'Spatial data unavailable':!Spatial.inScope(l,edgeBuffer())?'Outside the selected analysis area':overlap===null?'Unknown: privacy radius or parcel geometry missing':overlap?'Privacy circle reaches a green permitted parcel':'⚠️ Likely unlicensed location: privacy circle does not reach any current-permit parcel';
-  if(numberMode())html+=`<details open><summary>Registration-number screening</summary><p>${esc(spatialText)}</p><p class="small muted">CompassKC supplies permit addresses and parcel identifiers. Listing registration screening uses permit numbers; green plots identify parcels linked to current permits.</p></details>`;
-  else html+=`<details><summary>Parcel-overlap screening</summary><p class="${likelyUnlicensed(l)?'spatial-warning':'small'}"><b>Parcel-overlap screening:</b> ${esc(spatialText)}<br>Screening radius with +${leeway()}% leeway: ${effective===null?'Unknown':effective.toFixed(1)+' m'}<br>Extra parcel tolerance: ${parcelTolerance().toFixed(2)} m${parcelTolerance()?' (10 yards)':''}<br>Nearest permitted parcel: ${typeof l.nearest_licensed_parcel_m==='number'?l.nearest_licensed_parcel_m.toFixed(1)+' m':'Unknown'}<br><span class="small muted">${l.privacy_radius_meters>0?'The map circle uses the radius provided with this Airbnb listing.':'The selected map circle is a 15 m display fallback; it is not an Airbnb-provided radius and does not change screening.'} This geographic screen does not verify license status.</span></p></details>`;
-  if(l.matched_permits.length) html+='<details><summary>Direct permit-number matches</summary>'+l.matched_permits.map(permitCard).join('')+'</details>';
+  const spatialText=numberMode()?(l.cancelled_permit_at_permitted_address?`Valid · Current permit at the same property: ${(l.property_permits||[]).filter(p=>p.status==='current').map(p=>p.permit_number).join(', ')}. Permit discrepancy: the listing cites ${(l.matched_permits||[]).map(p=>p.permit_number).join(', ')}, which was cancelled` :l.noncurrent_permit_at_permitted_address?(l.registration_class==='expired'?'Likely permitted · Listed permit expired, property permit renewed: the listing contains an expired permit, but a new current permit was issued for the same property. The specific listing / dwelling unit has not been verified':`Current permit at the same property · The listing cites a ${[...new Set(l.matched_permits.map(p=>p.status))].join(' / ')} permit. Current property permit: ${(l.property_permits||[]).filter(p=>p.status==='current').map(p=>p.permit_number).join(', ')}. The listing’s specific dwelling unit is not verified`):l.likely_unlicensed_number===true?`⚠️ Likely unlicensed: ${({expired:'registration number belongs to an expired permit',other:'registration number matches a non-current permit',unmatched:'registration number is not on the city list',none:'no registration number shown in the saved listing'})[l.registration_class]||'no current registration'}`:potentiallyLicensed(l)?'Potentially licensed: permit does not show up in license list (CompassKC); not verified':l.likely_unlicensed_number===false?'Registration number matches the CompassKC permit list':`Not assessed (${l.registration_class||'no saved text'})`)+(l.registration_text?` · Listed registration: ${l.registration_text}`:''):l.likely_hotel?'Likely hotel: excluded from potentially unlicensed screening':!spatial.available?'Spatial data unavailable':!Spatial.inScope(l,edgeBuffer())?'Outside the selected analysis area':overlap===null?'Unknown: privacy radius or parcel geometry missing':overlap?'Privacy circle reaches a green permitted parcel':'⚠️ Likely unlicensed location: privacy circle does not reach any current-permit parcel';
+  const adversePermits=l.matched_permits.filter(p=>['denied','revoked','suspended'].includes(String(p.status||'').toLowerCase())).filter(p=>{
+    const adverseDate=Date.parse(p.saved_details?.finalized||p.finalized||p.issued||p.applied||'');
+    return !(l.property_permits||[]).some(current=>current.status==='current'
+      &&p.parcel&&normalizeParcel(current.parcel)===normalizeParcel(p.parcel)
+      &&Number.isFinite(adverseDate)&&Date.parse(current.issued)>adverseDate);
+  });
+  const adverseWarning=adversePermits.length?`<p style="border-left:4px solid #dc2626;background:rgba(220,38,38,.12);padding:8px"><b style="color:#dc2626">⚠️ Likely unlicensed: ${adversePermits.map(p=>`${esc(p.permit_number)} — ${esc(p.status)}`).join('; ')}</b><br>No later-issued current permit is recorded on the same parcel. See permit details below.</p>`:'';
+  const connectedPermitMatch=l.matched_permits.length>0&&!needsParcelFallback(l);
+  if(numberMode()&&connectedPermitMatch&&adverseWarning)html+=adverseWarning;
+  if(numberMode()&&!connectedPermitMatch)html+=`<details open><summary>Registration-number screening</summary>${adverseWarning||`<p>${esc(spatialText)}</p>`}<p class="small muted">Registration source: ${listingSource}</p><p class="small muted">CompassKC supplies permit addresses and parcel identifiers. Listing registration screening uses permit numbers; green plots identify parcels linked to current permits.</p></details>`;
+  else if(!numberMode())html+=`<details><summary>Parcel-overlap screening</summary><p class="${likelyUnlicensed(l)?'spatial-warning':'small'}"><b>Parcel-overlap screening:</b> ${esc(spatialText)}<br>Screening radius with +${leeway()}% leeway: ${effective===null?'Unknown':effective.toFixed(1)+' m'}<br>Extra parcel tolerance: ${parcelTolerance().toFixed(2)} m${parcelTolerance()?' (10 yards)':''}<br>Nearest permitted parcel: ${typeof l.nearest_licensed_parcel_m==='number'?l.nearest_licensed_parcel_m.toFixed(1)+' m':'Unknown'}<br><span class="small muted">${l.privacy_radius_meters>0?'The map circle uses the radius provided with this Airbnb listing.':'The selected map circle is a 15 m display fallback; it is not an Airbnb-provided radius and does not change screening.'} This geographic screen does not verify license status.</span></p></details>`;
+  const locationConflicts=permitParcelLinks([l],true).filter(f=>f.properties.location_conflict);
+  if(locationConflicts.length) html+=`<p class="spatial-warning"><b>Listing / permit location discrepancy</b><br>${locationConflicts.map(f=>`${esc(f.properties.permit_number)}: ${(f.properties.distance_m/1000).toFixed(2)} km from the approximate listing location`).join('<br>')}<br><span class="small muted">The number matches the saved listing text, but the locations disagree. Connections longer than 550 m are errors and are not drawn; this does not verify the listing’s address or authorization.</span></p>`;
+  if(l.conflicting_permit_parcels?.length) html+=`<details><summary>Other or conflicting city parcel addresses</summary><p class="small muted">These parcel addresses differ from the primary permit address. City details may list multiple locations; secondary or conflicting addresses are excluded from automatic property connections pending review.</p>${l.conflicting_permit_parcels.map(p=>`<p>${esc(p.permit_number)}: ${esc(p.permit_address)}<br>Parcel ${esc(p.parcel)}: ${esc(p.parcel_address)}</p>`).join('')}</details>`;
+  if(l.ambiguous_permit_candidates?.length) html+=`<details><summary>Abbreviated permit number is ambiguous</summary><p class="small muted">The listing omits the CD or NSD prefix. Multiple city permits share that number; no property connection is inferred from it.</p>${permitCards(l.ambiguous_permit_candidates)}</details>`;
+  /* Disabled for the compact listing card: separate full property permit history. Remove this comment to restore.
+  if(l.property_permits?.length) html+=`<details><summary>All permits at the matched property (${l.property_permits.length})</summary><p class="small muted">Associated by the city parcel identifier. A property permit may cover a different dwelling unit; association does not verify this listing’s authorization.</p>${permitCards(l.property_permits)}</details>`;
+  */
+  const recoveredProperties=propertyLocationGeometry().features.filter(f=>f.properties.match_basis==='exact_saved_permit_address'&&(l.matched_property_parcels||[]).includes(normalizeParcel(f.properties.parcel)));
+  if(recoveredProperties.length)html+=`<p class="small muted"><b>Uncertain address-based parcel recovery ?</b><br>${recoveredProperties.map(f=>`Saved permit parcel ${esc(f.properties.parcel)}; current city parcel ${esc(f.properties.source_parcel)} at the same street address`).join('<br>')}. Different parcel identifiers require review. The two yellow ? lines represent the saved permit address and the current city parcel address at the same mapped location; they do not establish two separate properties.</p>`;
+  if(l.permit_match_methods?.length)html+=`<p class="small muted"><b>Uncertain abbreviated permit match ?</b><br>Resolved a missing prefix using a unique same-number city permit less than 550 m away. This is provisional.</p>`;
+  if(numberMode()&&needsParcelFallback(l))html+=`<details data-parcel-candidates><summary>Nearby parcel candidates ?</summary><p class="small muted">Used when no matched permit has a usable location within 550 m; distant number matches remain listed as conflicting evidence. Up to five owner/name candidates within 550 m, prioritizing the Airbnb privacy radius. Distance-only radius <span data-parcel-radius>${parcelMatchRadius()}</span> m. Nearby city parcel owners are checked automatically; saved data is used if the city lookup is unavailable. Nicknames use owner names, never Assigned To staff. Name and distance associations do not verify ownership or licensing.</p><div data-property-associations></div></details>`;
+  // Compact permit match: each directly matched record once, with related history nested.
+  if(l.matched_permits.length){
+    const directIds=new Set(l.matched_permits.map(p=>p.id));
+    const all=[...new Map([...(l.property_permits||[]),...l.matched_permits].map(p=>[p.id,p])).values()].sort(permitOrder);
+    const pertinent=all.filter(p=>p.status==='current'||directIds.has(p.id));
+    const history=all.filter(p=>!pertinent.includes(p));
+    const first=pertinent[0];
+    html+='<details open><summary>Matched permit-number records</summary>'
+      +`<p class="small"><b>${esc(first.address||'Property address unavailable')}</b>${first.parcel?` · Parcel ${esc(first.parcel)}`:''}</p>`
+      +pertinent.map(p=>permitCard(p,directIds.has(p.id)?`Listed registration: ${l.registration_text||p.permit_number}`:'Current property permit · not the number listed on Airbnb')).join('')
+      +(l.noncurrent_permit_at_permitted_address?`<p class="small muted">${l.cancelled_permit_at_permitted_address?'Valid · Permit discrepancy: listed permit was cancelled; current property permit shown above.':'Likely permitted · Listed permit expired, property permit renewed.'} The specific listing / dwelling unit is not verified.</p>`:'')
+      +(history.length?`<details><summary>Other permits at this property (${history.length})</summary>${history.map(permitCard).join('')}</details>`:'')+'</details>';
+  }
   else html+='<details><summary>Permit-number matching</summary><p class="small muted">No direct permit-number match. This does not establish whether a license exists at this address.</p></details>';
+  const nicknameEvidence=permitParcelLinks([l]).filter(f=>['owner_nickname','permit_owner_nickname'].includes(f.properties.method));
+  for(const evidence of nicknameEvidence){
+    const row=evidence.properties;
+    html+=row.name_source==='parcel'
+      ?`<details open><summary>Parcel nickname match ?</summary><p><b>Parcel details</b><br>${esc(row.parcel_address)}<br>Parcel: ${esc(row.parcel)}<br>Property owner: ${esc(row.matched_name)}<br>Host nickname: ${esc(row.host_name)} · ${row.distance_m.toFixed(1)} m</p><p class="small muted">The nickname matches the city parcel owner name, not a name supplied on the permit. This is an uncertain association.</p></details>`
+      :`<details open><summary>Permit nickname match ?</summary><p>Permit: ${esc(row.permit_number)}<br>Permit owner/applicant name: ${esc(row.matched_name)}<br>Host nickname: ${esc(row.host_name)} · ${row.distance_m.toFixed(1)} m</p><p class="small muted">The nickname matches the saved permit owner name. This is an uncertain association.</p></details>`;
+  }
+
+  /* Disabled for the compact listing card: party keywords, permit-number evidence, lower capacity rules, forms and corrections. Remove this comment to restore.
   if(l.party_house) html+=`<p><b>🎉 Party/event keyword matches:</b> ${Object.keys(l.amenities).map(amenityIconHtml).join(' ')}</p><details><summary>Keyword evidence</summary>${Object.entries(l.amenities).map(([k,v])=>`<p>${amenityIconHtml(k)} ${esc(k.replaceAll('_',' '))}<br><span class="evidence">${esc(v.evidence)}<br>Source: ${listingSource}</span></p>`).join('')}</details>`;
   if(l.permit_evidence.length) html+=`<details><summary>Permit-number evidence</summary>${l.permit_evidence.map(e=>`<p><b>${esc(e.number)}</b> (${esc(e.method)})<br><span class="evidence">${esc(e.evidence)}<br>Source: ${listingSource}</span></p>`).join('')}</details>`;
   html+='<details><summary>Data and capacity rules</summary>';
   html+=dualCapacity?'<p class="small muted">Two-unit screening estimate: min(2 × total bedrooms + 2, 16), assuming bedrooms split evenly and each unit gets +1 guests. The detected numbers may be inaccurate and do not confirm separate licensed units. Saved listing data; approximate Airbnb location. <a href="about_data.html">Data and Kansas City rules</a></p>':'<p class="small muted">Kansas City occupancy ceiling = min(2 × bedrooms + 1, 8) per dwelling unit, using advertised bedrooms. Missing bedrooms: only excess above 8 can be flagged. Saved listing data; approximate Airbnb location. <a href="about_data.html">Data and Kansas City rules</a></p>';
   html+='</details><details><summary>Forms and corrections</summary><div class="report-actions"><button type="button" data-complaint>Complaint form (with evidence)</button><button type="button" data-report="location">Suggest location correction</button><button type="button" data-report="license">Suggest license correction</button><button type="button" data-report="address">Suggest address correction</button><a data-hotel-form target="_blank" rel="noopener">Report this listing as a hotel ↗</a></div></details>';
+  */
   popup=new maplibregl.Popup({closeOnClick:false,maxWidth:'380px',className:'listing-popup-centered map-card-centered'}).setLngLat(l.displayPoint||l.point).setHTML(html).addTo(map);activeCardState=nextCardState;
 
+  /* Disabled for the compact listing card: hotel report form bindings. Remove this comment to restore.
   if(l.likely_hotel&&!l.explicit_hotel_room&&!/\bhotel[ _-]*room\b|\broom in (?:a |boutique )?hotel\b/i.test(l.rental_type||'')){
     const link=document.createElement('a');link.textContent='Report this listing as not a hotel ↗';link.target='_blank';link.rel='noopener';link.dataset.notHotelForm='';
     const url=new URL('https://docs.google.com/forms/d/e/1FAIpQLSend-lUNSiOrOEYWo_CEpfgrIo3Xy-mR3Ycc0EOnvtFkPS2aA/viewform');url.searchParams.set('usp','pp_url');url.searchParams.set('entry.225332467',l.url);url.searchParams.set('entry.1451491665',l.not_hotel_tips?.[0]?.address||l.approximate_address||'');link.href=url.toString();popup.getElement().querySelector('.report-actions').append(link);
   }
   const hotelForm=new URL('https://docs.google.com/forms/d/e/1FAIpQLScjN7eHKBjY3c8Iew6F08WYgHN30ozXlv9NHg2lpfBrABGXdg/viewform');hotelForm.searchParams.set('usp','pp_url');hotelForm.searchParams.set('entry.225332467',l.url);popup.getElement().querySelector('[data-hotel-form]').href=hotelForm.toString();
+  */
   popup.getElement().querySelector('[data-select-host]').onclick=()=>{pendingHostKey=hostKey(l);$('hostPromptName').textContent=l.host_name||'Unknown host';$('hostConfirmDialog').showModal();};
-  if(!numberMode())renderListingAssociations(l,popup.getElement().querySelector('[data-property-associations]'));
+  if(!numberMode()||needsParcelFallback(l))renderListingAssociations(l,popup.getElement().querySelector('[data-property-associations]'));
+  /* Disabled for the compact listing card: complaint and correction form bindings. Remove this comment to restore.
   bindComplaintButton(popup.getElement(),l.approximate_address||l.location_name,l.point,l.url);
   popup.getElement().querySelectorAll('[data-report]').forEach(button=>button.onclick=()=>Reporting.open(l,button.dataset.report));
+  */
   const linkedPermits=[...l.matched_permits,...(nearbyPermit?[nearbyPermit]:[])];
-  const links=[...new Map(linkedPermits.filter(p=>p.point).map(p=>[p.id,feature({type:'LineString',coordinates:[l.point,p.point]})])).values()];
+  const links=[...new Map(linkedPermits.filter(p=>p.point&&distance(l.point,p.point)<=550).map(p=>[p.id,feature({type:'LineString',coordinates:[l.point,p.point]})])).values()];
   sourceData('connections',collection(numberMode()?permitParcelLinks([l]):links));
+  if(numberMode()&&needsParcelFallback(l))renderFallbackAssociations(l,popup.getElement().querySelector('[data-property-associations]'));
   popup.on('close',()=>{resetMatchInteraction();sourceData('connections',collection([]));if(selectedListing===l){selectedListing=null;updatePrivacy();}});
 }
-function permitParcelLinks(items){
-  const plots=new Map((licensedParcels?.features||[]).map(f=>[normalizeParcel(f.properties.parcel),f.properties.point]));
-  const links=[];
-  for(const l of items){if(!l.point)continue;const seen=new Set();
-    for(const p of l.matched_permits||[]){if(p.status!=='current')continue;
-      for(const id of p.parcels||[p.parcel]){const key=normalizeParcel(id),target=plots.get(key);if(!target||seen.has(key))continue;seen.add(key);
-        links.push(feature({type:'LineString',coordinates:[l.point,target]},{listing_id:l.listing_id,parcel:id,permit_number:p.permit_number}));}
-    }
-  }return links;
+async function loadPermitDisplayParcels(){
+  const base=await getJSON('data/permit_parcels.geojson');
+  try{const extra=await getJSON('data/permit_property_parcels.geojson');return collection([...base.features,...extra.features]);}catch{return base;}
 }
+function propertyLocationGeometry(){return collection([...(permitLocationPoints?.features||[]),...((permitParcels||licensedParcels)?.features||[])]);}
+function permitParcelLinks(items,includeRejected=false){
+  return PermitProperties.links(items, propertyLocationGeometry(),includeRejected,nameMatchingData);
+}
+
 function fitVisible() {
   if(!visible.length)return;
   const b=new maplibregl.LngLatBounds();visible.forEach(l=>b.extend(l.point));map.fitBounds(b,{padding:60,maxZoom:16});
 }
 function prepareData() {
   balanceKey=null;
-  anyPermitParcels=new Set(permits.map(p=>normalizeParcel(p.parcel)).filter(Boolean));
+  PermitProperties.prepare(listings, permits, propertyLocationGeometry(), permitSavedDetails);
+  const expiredMajorParcels=new Set(permits.filter(expiredMajorPermit).flatMap(p=>p.parcels||[p.parcel]).map(normalizeParcel));
+  for(const f of permitParcels?.features||[])f.properties.expired_major_event=f.properties.permit_status==='expired'&&expiredMajorParcels.has(normalizeParcel(f.properties.parcel));
+  anyPermitParcels=new Set(permits.flatMap(p=>[p.parcel,...(p.parcels||[])]).map(normalizeParcel).filter(Boolean));
   currentPermitParcels=new Set(permits.filter(p=>p.status==='current').map(p=>normalizeParcel(p.parcel)).filter(Boolean));
   currentPermits=permits.filter(p=>p.status==='current'&&p.point);permitGrid.clear();
   for(const p of currentPermits) {const key=`${Math.floor(p.point[0]*100)}_${Math.floor(p.point[1]*100)}`;if(!permitGrid.has(key))permitGrid.set(key,[]);permitGrid.get(key).push(p);}
@@ -712,7 +961,7 @@ function prepareData() {
   const permitStatusCounts=new Map();
   for(const permit of permits){const status=String(permit.status||'unknown').toLowerCase();permitStatusCounts.set(status,(permitStatusCounts.get(status)||0)+1);}
   const permitStatusLabel=status=>status.replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase());
-  $('buildStatus').textContent=`${listings.length.toLocaleString()} listings`;
+  updateFooterListingCount();
   const currentPermitCount=permitStatusCounts.get('current')||0;
   $('currentPermitCount').textContent=`${currentPermitCount.toLocaleString()} current permits · ${(permits.length-currentPermitCount).toLocaleString()} historical / expired`;
   const hotelCount=listings.filter(l=>l.likely_hotel).length;
@@ -730,12 +979,12 @@ async function reloadData() {
   [listings,permits,report]=await Promise.all(['listings','permits','build_report'].map(n=>getJSON(`data/${n}.json`)));
   if(report.spatial?.available)spatial=await getJSON('data/spatial.json');
   Reporting.invalidate();
-  if(parcelManifest?.available){licensedParcels=await getJSON('data/licensed_parcels.geojson');permitParcels=await getJSON('data/permit_parcels.geojson');sourceData('parcels',permitParcels);}
+  if(parcelManifest?.available){licensedParcels=await getJSON('data/licensed_parcels.geojson');permitParcels=await loadPermitDisplayParcels();sourceData('parcels',permitParcels);}
   sourceData('boundary',spatial.boundary||collection([]));
   popup?.remove();prepareData();update();Reporting.loadViewport(map);$('refresh').hidden=true;
 }
 function addSourcesAndLayers() {
-  for(const id of ['listings','privacy','permit-points','coverage','addresses','connections','permit-links','edge-buffer','edge-band','balance','surplus','deficit','nearby-parcels','candidate-preview','candidate-connections','name-matches'])map.addSource(id,{type:'geojson',data:collection([])});
+  for(const id of ['listings','privacy','permit-points','coverage','addresses','connections','permit-links','edge-buffer','edge-band','balance','surplus','deficit','nearby-parcels','candidate-preview','candidate-connections','connection-labels','name-matches'])map.addSource(id,{type:'geojson',data:collection([])});
   map.addSource('boundary',{type:'geojson',data:spatial.boundary||collection([])});
   map.addSource('parcels',{type:'geojson',data:permitParcels||collection([])});
   map.addLayer({id:'balance-fill',type:'fill',source:'balance',layout:{visibility:'none'},paint:{'fill-color':['interpolate',['linear'],['get','difference'],-20,'#15803d',0,'#f1f5f9',20,'#ef4444',100,'#991b1b'],'fill-opacity':.42}});
@@ -744,8 +993,8 @@ function addSourcesAndLayers() {
   map.addLayer({id:'deficit-heatmap',type:'heatmap',source:'deficit',layout:{visibility:'none'},paint:{'heatmap-weight':['get','weight'],'heatmap-radius':['interpolate',['linear'],['zoom'],9,['*',['get','radius_scale'],4.5],11,['*',['get','radius_scale'],18],13,['*',['get','radius_scale'],72],15,['*',['get','radius_scale'],288],18,['*',['get','radius_scale'],2304]],'heatmap-intensity':1,'heatmap-opacity':.15,'heatmap-color':['interpolate',['linear'],['heatmap-density'],0,'rgba(255,255,255,0)',.02,'rgba(237,247,237,.65)',.08,'rgba(205,232,205,.75)',.22,'rgba(151,201,151,.85)',1,'rgba(112,168,112,.9)']}});
   map.addLayer({id:'nearby-parcel-fill',type:'fill',source:'nearby-parcels',minzoom:15,paint:{'fill-color':'#94a3b8','fill-opacity':.025}});
   map.addLayer({id:'nearby-parcel-line',type:'line',source:'nearby-parcels',minzoom:15,paint:{'line-color':'#64748b','line-opacity':.65,'line-width':1}});
-  map.addLayer({id:'parcel-fill',type:'fill',source:'parcels',paint:{'fill-color':['match',['get','permit_status'],'expired','#facc15','revoked','#dc2626','suspended','#dc2626','#22c55e'],'fill-opacity':.42}});
-  map.addLayer({id:'parcel-line',type:'line',source:'parcels',paint:{'line-color':['match',['get','permit_status'],'expired','#eab308','revoked','#dc2626','suspended','#dc2626','#15803d'],'line-width':1.5}});
+  map.addLayer({id:'parcel-fill',type:'fill',source:'parcels',paint:{'fill-color':['case',['boolean',['get','expired_major_event'],false],'#a855f7',['match',['get','permit_status'],'expired','#facc15','revoked','#dc2626','suspended','#dc2626','current','#22c55e','#94a3b8']],'fill-opacity':.42}});
+  map.addLayer({id:'parcel-line',type:'line',source:'parcels',paint:{'line-color':['case',['boolean',['get','expired_major_event'],false],'#7e22ce',['match',['get','permit_status'],'expired','#eab308','revoked','#dc2626','suspended','#dc2626','current','#15803d','#475569']],'line-width':1.5}});
   map.addLayer({id:'coverage-fill',type:'fill',source:'coverage',paint:{'fill-color':'#4ade80','fill-opacity':.035}});
   map.addLayer({id:'coverage-line',type:'line',source:'coverage',paint:{'line-color':'#15803d','line-opacity':.35,'line-width':1}});
   map.addLayer({id:'privacy-fill',type:'fill',source:'privacy',paint:{'fill-color':'#3b82f6','fill-opacity':['case',['boolean',['get','selected'],false],.12,0]}});
@@ -769,15 +1018,25 @@ function addSourcesAndLayers() {
   map.addLayer({id:'edge-buffer-line',type:'line',source:'edge-buffer',paint:{'line-color':'#9333ea','line-width':2.5,'line-dasharray':[3,2]}});
   map.addLayer({id:'heatmap',type:'heatmap',source:'listings',layout:{visibility:'none'},paint:{'heatmap-radius':35,'heatmap-opacity':.6}});
   map.addLayer({id:'permit-markers',type:'circle',source:'permit-points',paint:{'circle-radius':4,'circle-color':['get','color'],'circle-stroke-color':'white','circle-stroke-width':1}});
-  map.addLayer({id:'permit-links',type:'line',source:'permit-links',paint:{'line-color':'#14532d','line-width':2.5,'line-opacity':1,'line-dasharray':[1.5,.7]}});
-  map.addLayer({id:'connections',type:'line',source:'connections',paint:{'line-color':'#3b0764','line-width':2.5,'line-dasharray':[1.5,.7]}});
+  map.addLayer({id:'permit-links',type:'line',source:'permit-links',paint:{'line-color':['case',['boolean',['get','uncertain'],false],'#eab308','#15803d'],'line-offset':['match',['get','method'],'owner_nickname',-5,'permit_owner_nickname',-10,'current_parcel_address',5,0],'line-width':2.5,'line-opacity':1,'line-dasharray':[1.5,.7]}});
+  map.addLayer({id:'connections',type:'line',source:'connections',paint:{'line-color':['case',['boolean',['get','uncertain'],false],'#eab308','#15803d'],'line-offset':['match',['get','method'],'owner_nickname',-5,'permit_owner_nickname',-10,'current_parcel_address',5,0],'line-width':2.5,'line-dasharray':[1.5,.7]}});
   map.addLayer({id:'name-matches-fill',type:'fill',source:'name-matches',paint:{'fill-color':['get','color'],'fill-opacity':.3}});
   map.addLayer({id:'name-matches-line',type:'line',source:'name-matches',paint:{'line-color':['get','color'],'line-width':3}});
   map.addLayer({id:'candidate-preview-fill',type:'fill',source:'candidate-preview',paint:{'fill-color':'#2563eb','fill-opacity':.3}});
   map.addLayer({id:'candidate-preview-line',type:'line',source:'candidate-preview',paint:{'line-color':'#1d4ed8','line-width':4}});
   map.addLayer({id:'candidate-preview-point',type:'circle',source:'candidate-preview',filter:['==',['geometry-type'],'Point'],paint:{'circle-color':['match',['get','role'],'airbnb','#e11d48','#2563eb'],'circle-radius':8,'circle-stroke-color':'#ffffff','circle-stroke-width':2}});
-  map.addLayer({id:'candidate-connections',type:'line',source:'candidate-connections',paint:{'line-color':'#1d4ed8','line-width':3,'line-dasharray':[2,2]}});
-  map.addLayer({id:'listing-markers',type:'circle',source:'listings',paint:{'circle-radius':['interpolate',['linear'],['zoom'],9,3,11,5,13,12,16,20],'circle-color':['get','color'],'circle-stroke-color':['get','stroke'],'circle-stroke-width':2}});
+  map.addLayer({id:'candidate-connections',type:'line',source:'candidate-connections',paint:{'line-color':'#eab308','line-width':3,'line-dasharray':[2,2]}});
+  map.addLayer({id:'connection-question-labels',type:'symbol',source:'connection-labels',layout:{'text-field':['get','label'],'text-offset':['match',['get','label'],'Nickname ?',['literal',[0,2]],'Parcel nickname ?',['literal',[0,2]],'Permit nickname ?',['literal',[0,3]],'Parcel ?',['literal',[0,1]],['literal',[0,-1]]],'text-size':['interpolate',['linear'],['zoom'],9,2.4,11,4,13,9.6,16,16],'text-font':['Noto Sans Regular'],'text-allow-overlap':true,'text-ignore-placement':true},paint:{'text-color':'#854d0e','text-halo-color':'white','text-halo-width':['interpolate',['linear'],['zoom'],9,.3,11,.5,13,1.2,16,2]}});
+  map.addLayer({id:'listing-markers',type:'circle',source:'listings',paint:{'circle-radius':['interpolate',['linear'],['zoom'],9,3,11,5,13,12,16,20],'circle-color':['get','color'],'circle-opacity':['case',['boolean',['get','renewed'],false],0,1],'circle-stroke-color':['get','stroke'],'circle-stroke-width':2}});
+  for(const [id,left,color] of [['renewed-permit','#facc15','#22c55e'],['renewed-major-permit','#a855f7','#22c55e'],['renewed-over-capacity','#facc15','#dc2626'],['permitted-over-capacity','#dc2626','#22c55e']]) {
+    const canvas=document.createElement('canvas');canvas.width=64;canvas.height=64;
+    const context=canvas.getContext('2d');
+    context.beginPath();context.arc(32,32,32,0,Math.PI*2);context.clip();
+    context.fillStyle=left;context.fillRect(0,0,32,64);
+    context.fillStyle=color;context.fillRect(32,0,32,64);
+    map.addImage(id,context.getImageData(0,0,64,64),{pixelRatio:2});
+  }
+  map.addLayer({id:'renewed-listing-markers',type:'symbol',source:'listings',filter:['==',['get','renewed'],true],layout:{'icon-image':['get','renewal_icon'],'icon-size':['interpolate',['linear'],['zoom'],9,3/16,11,5/16,13,12/16,16,20/16],'icon-allow-overlap':true,'icon-ignore-placement':true}});
   map.addLayer({id:'listing-labels',type:'symbol',source:'listings',minzoom:12,layout:{'text-field':['get','label'],'text-size':12,'text-line-height':1.05,'text-font':['Noto Sans Regular'],'text-allow-overlap':true,'text-ignore-placement':true},paint:{'text-color':'#172b3b'}});
   map.addLayer({id:'address-labels',type:'symbol',source:'addresses',minzoom:16,layout:{'text-field':['get','address'],'text-size':11,'text-font':['Noto Sans Regular'],'text-offset':[0,2]},paint:{'text-color':'#172b3b','text-halo-color':'white','text-halo-width':2}});
   map.moveLayer('address-labels','listing-markers');
@@ -785,6 +1044,7 @@ function addSourcesAndLayers() {
   const ctx=warningCanvas.getContext('2d');ctx.font='48px "Segoe UI Emoji", sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('⚠️',32,32);
   map.addImage('spatial-warning',ctx.getImageData(0,0,64,64),{pixelRatio:2});
   map.addLayer({id:'warning-markers',type:'symbol',source:'listings',filter:['==',['get','warning'],true],layout:{'icon-image':'spatial-warning','icon-size':['interpolate',['linear'],['zoom'],9,.45,13,.7,16,.9],'icon-offset':[30,-30],'icon-allow-overlap':true,'icon-ignore-placement':true}});
+  map.on('click','renewed-listing-markers',e=>{const l=listings.find(l=>l.listing_id===e.features[0].properties.id);if(l)showListing(l);});
   map.on('click','warning-markers',e=>{const l=listings.find(l=>l.listing_id===e.features[0].properties.id);if(l)showListing(l);});
   map.on('click','balance-fill',e=>{
     if(map.queryRenderedFeatures(e.point,{layers:['listing-markers','permit-markers','warning-markers']}).length)return;
@@ -793,12 +1053,12 @@ function addSourcesAndLayers() {
   map.on('click','listing-markers',e=>{const l=listings.find(l=>l.listing_id===e.features[0].properties.id);if(l)showListing(l);});
   map.on('click','listing-labels',e=>{const l=listings.find(l=>l.listing_id===e.features[0].properties.id);if(l)showListing(l);});
   map.on('click','privacy-line',()=>{if(selectedListing)showListing(selectedListing);});
-  const listingClick=e=>map.queryRenderedFeatures(e.point,{layers:['listing-markers','listing-labels','warning-markers','privacy-line']}).length;
+  const listingClick=e=>map.queryRenderedFeatures(e.point,{layers:['listing-markers','renewed-listing-markers','listing-labels','warning-markers','privacy-line']}).length;
   map.on('click','permit-markers',e=>{if(listingClick(e))return;const p=permits.find(p=>p.id===e.features[0].properties.id);if(p)showProperty(p,p.point);});
   map.on('click','parcel-fill',e=>{if(listingClick(e)||map.queryRenderedFeatures(e.point,{layers:['permit-markers']}).length)return;showProperty(e.features[0].properties,e.lngLat);});
   map.on('click','nearby-parcel-fill',e=>{if(listingClick(e)||map.queryRenderedFeatures(e.point,{layers:['permit-markers','parcel-fill']}).length)return;showProperty(e.features[0].properties,e.lngLat);});
   for(const id of ['listing-markers','permit-markers','parcel-fill']){map.on('mouseenter',id,()=>map.getCanvas().style.cursor='pointer');map.on('mouseleave',id,()=>map.getCanvas().style.cursor='');}
-  map.on('moveend',()=>{BrowserState.schedule();updateSymbols();updateEyes();updateAddresses();Reporting.loadViewport(map);});
+  map.on('moveend',()=>{updateFooterListingCount();BrowserState.schedule();updateSymbols();updateEyes();updateAddresses();Reporting.loadViewport(map);});
   Reporting.loadViewport(map);
   update();
 }
@@ -814,7 +1074,9 @@ async function init() {
   try {
     [listings,permits,report]=await Promise.all(['listings','permits','build_report'].map(n=>getJSON(`data/${n}.json`)));
     try{parcelManifest=await getJSON('data/parcels/manifest.json');}catch{parcelManifest={available:false};}
-    if(parcelManifest?.available){licensedParcels=await getJSON('data/licensed_parcels.geojson');permitParcels=await getJSON('data/permit_parcels.geojson');}
+    if(parcelManifest?.available){licensedParcels=await getJSON('data/licensed_parcels.geojson');permitParcels=await loadPermitDisplayParcels();}
+    try{[permitLocationPoints,permitSavedDetails]=await Promise.all([getJSON('data/permit_location_points.json'),getJSON('data/permit_saved_details.json')]);}catch{}
+    try{[nameMatchingData,parcelMatchingData]=await Promise.all([getJSON('data/nicknames.json'),getJSON('data/parcel_matching_candidates.geojson')]);}catch{}
     if(report.spatial?.available)spatial=await getJSON('data/spatial.json');
     if(!spatial.available){for(const id of ['scopeOnly','likely','warningSymbols','difference','surplusHeatmap','heatRadius','heatIntensity']){$(id).checked=false;$(id).disabled=true;}}
     prepareData();
