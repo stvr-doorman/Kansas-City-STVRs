@@ -1,0 +1,9 @@
+{
+  "files": 1078,
+  "total_bytes": 280553071,
+  "largest_file": "data/gis_parcels/search_index.json.gz",
+  "largest_bytes": 17385557,
+  "missing_local_html_dependencies": [],
+  "compressed_assets_verified": 65,
+  "file_limit_bytes": 26214400
+}

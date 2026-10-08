@@ -1,0 +1,723 @@
+{
+  "showWhatsNew": false,
+  "parcelAlert": {
+    "show": false,
+    "url": "https://maps.kcmo.org/kcgis/rest/services/external/TargetedCurbsidePickup/MapServer/0",
+    "title": "Targeted Curbside Pickup",
+    "showNoMessage": true
+  },
+  "startExtent": {
+    "xmin": 2761500,
+    "ymin": 1066500,
+    "xmax": 2769000,
+    "ymax": 1070800,
+    "spatialReference": {
+      "wkid": 102698
+    }
+  },
+  "startExtent2": {
+    "xmin": 2712000,
+    "ymin": 966000,
+    "xmax": 2823000,
+    "ymax": 1163000,
+    "spatialReference": {
+      "wkid": 102698
+    }
+  },
+  "geometryService": "https://mapd.kcmo.org/kcgis/rest/services/Utilities/Geometry/GeometryServer",
+  "bingMapsKey": "Av1bH4keF8rXBtxWOegklgWGCYYz8UGYvBhsWKuvc4Z15kT76xVFOERk8jkKEDvT",
+  "proxyPage": {
+    "url": "https://maps.kcmo.org/proxy/proxy.ashx",
+    "alwaysUseProxy": false
+  },
+  "notesRevision": 1,
+  "defaultZoomLevel": 7,
+  "defaultZoomLevel_SmallScreen": 10,
+  "baseMaps": [
+    {
+      "id": "streetBase",
+      "title": "Streets",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/CachedMaps/Street_Map/MapServer",
+      "url_old1": "https://maps2.kcmo.org/kcgis/rest/services/external/Street_Map/MapServer",
+      "url_old2": "https://maps5.kcmo.org/kcgis/rest/services/CachedMaps/Street_Map/MapServer",
+      "thumbnailUrl": "images/streets.jpg"
+    },
+    {
+      "id": "aerialBase2024",
+      "title": "Ortho 2024",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/CachedMaps/Orthophoto_2024/MapServer",
+      "thumbnailUrl": "images/ortho2024.jpg"
+    },
+    {
+      "id": "aerialBase2022",
+      "title": "Ortho 2022",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/CachedMaps/Orthophoto_2022/MapServer",
+      "thumbnailUrl": "images/ortho2022.jpg"
+    },
+    {
+      "id": "aerialBase2020",
+      "title": "Ortho 2020",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/CachedMaps/Orthophoto_2020/MapServer",
+      "url_old1": "https://maps2.kcmo.org/kcgis/rest/services/external/Orthophoto_2020/MapServer",
+      "thumbnailUrl": "images/ortho2020.jpg"
+    },
+    {
+      "id": "aerialBase2018",
+      "title": "Ortho 2018",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/CachedMaps/Orthophoto_2018/MapServer",
+      "thumbnailUrl": "images/ortho2018.jpg"
+    },
+    {
+      "id": "aerialBase2016",
+      "title": "Ortho 2016",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/CachedMaps/Orthophoto_2016/MapServer",
+      "thumbnailUrl": "images/ortho2016.jpg"
+    },
+    {
+      "id": "aerialBase2014",
+      "title": "Ortho 2014",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/CachedMaps/Orthophoto_2014/MapServer",
+      "url_old1": "https://maps5.kcmo.org/kcgis/rest/services/CachedMaps/Orthophoto_2014/MapServer",
+      "thumbnailUrl": "images/ortho2014.jpg"
+    },
+    {
+      "id": "aerialBase2012",
+      "title": "Ortho 2012",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/CachedMaps/Orthophoto_2012/MapServer",
+      "thumbnailUrl": "images/ortho2012.jpg"
+    },
+    {
+      "id": "aerialBase2010",
+      "title": "Ortho 2010",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/CachedMaps/Orthophoto_2010/MapServer",
+      "thumbnailUrl": "images/ortho2010.jpg"
+    },
+    {
+      "id": "aerialBase2008",
+      "title": "Ortho 2008",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/CachedMaps/Orthophoto_2008/MapServer",
+      "thumbnailUrl": "images/ortho2008.jpg"
+    },
+    {
+      "id": "aerialBase2006",
+      "title": "Ortho 2006",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/CachedMaps/Orthophoto_2006/MapServer",
+      "thumbnailUrl": "images/ortho2006.jpg"
+    },
+    {
+      "id": "aerialBase2005",
+      "title": "Ortho 2005 (Partial)",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/CachedMaps/Orthophoto_2005/MapServer",
+      "thumbnailUrl": "images/ortho2005.jpg"
+    }
+  ],
+  "operationalLayers": [
+    {
+      "id": "CityLimit",
+      "label": "City Limit",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/CachedMaps/CityLimit/MapServer",
+      "type": "tiled",
+      "opacity": 1.0,
+      "transparencySlider": false,
+      "visible": true
+    },
+    {
+      "id": "Future_Land_Use",
+      "label": "Future_Land_Use",
+      "url": "https://maps2.kcmo.org/kcgis/rest/services/Base_Data/FutureLandUse/MapServer",
+      "urlold": "https://mapd.kcmo.org/kcgis/rest/services/maps/FutureLandUse/MapServer",
+      "type": "dynamic",
+      "opacity": 1.0,
+      "transparencySlider": false,
+      "visible": false,
+      "annoLayers": ""
+    },
+    {
+      "id": "Platting",
+      "label": "Platting",
+      "url": "https://maps2.kcmo.org/kcgis/rest/services/ParcelViewer/Platting/MapServer",
+      "url_old1": "https://gismaps.kcmo.org/kctemp/rest/services/maps/Platting/MapServer",
+      "type": "dynamic",
+      "opacity": 1.0,
+      "transparencySlider": false,
+      "visible": true,
+      "annoLayers": "0,1,2,3,4,5,6,7,8,9,10,11"
+    },
+    {
+      "id": "Street_Names",
+      "label": "Street Names",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/CachedMaps/Streetnames/MapServer",
+      "url_old2": "https://maps5.kcmo.org/kcgis/rest/services/CachedMaps/Streetnames/MapServer",
+      "url_old1": "https://maps2.kcmo.org/kcgis/rest/services/external/Streetnames/MapServer",
+      "type": "tiled",
+      "opacity": 1.0,
+      "transparencySlider": false,
+      "visible": true
+    },
+    {
+      "id": "Contours",
+      "label": "Contours",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/CachedMaps/Contours/MapServer",
+      "type": "tiled",
+      "opacity": 1.0,
+      "transparencySlider": false,
+      "visible": false
+    },
+    {
+      "id": "Floodplain_History",
+      "label": "Floodplain History",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/maps/FloodplainHistory/MapServer",
+      "type": "dynamic",
+      "opacity": 1.0,
+      "transparencySlider": false,
+      "visible": false,
+      "annoLayers": ""
+    },
+    {
+      "id": "Floodplain",
+      "label": "Floodplain",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/maps/Floodplain/MapServer",
+      "type": "dynamic",
+      "opacity": 1.0,
+      "transparencySlider": true,
+      "visible": false,
+      "annoLayers": ""
+    },
+    {
+      "id": "Zoning",
+      "label": "Zoning",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/maps/Zoning/MapServer",
+      "type": "dynamic",
+      "opacity": 1.0,
+      "transparencySlider": false,
+      "visible": false,
+      "annoLayers": ""
+    },
+    {
+      "id": "Infill_Lots",
+      "label": "Infill Lots",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/CPD/Infill_Lots/MapServer",
+      "type": "dynamic",
+      "opacity": 1.0,
+      "transparencySlider": true,
+      "visible": false,
+      "annoLayers": ""
+    },
+    {
+      "id": "Overlays",
+      "label": "Overlays",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/maps/Overlays/MapServer",
+      "url_old2": "https://maps5.kcmo.org/kcgis/rest/services/maps/Overlays/MapServer",
+      "type": "dynamic",
+      "opacity": 1.0,
+      "transparencySlider": true,
+      "visible": false,
+      "annoLayers": ""
+    },
+    {
+      "id": "Points_of_Interest",
+      "label": "Points of Interest",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/CachedMaps/POI_Overlay/MapServer",
+      "type": "tiled",
+      "opacity": 1.0,
+      "transparencySlider": false,
+      "visible": true
+    },
+    {
+      "id": "Code_Cases",
+      "label": "Code Cases",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/maps/CodeCases/MapServer",
+      "type": "dynamic",
+      "opacity": 1.0,
+      "transparencySlider": false,
+      "visible": false,
+      "annoLayers": ""
+    },
+    {
+      "id": "311_Cases",
+      "label": "Open 311 Cases",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/maps/my311CasesPublic/MapServer",
+      "type": "dynamic",
+      "opacity": 1.0,
+      "transparencySlider": false,
+      "visible": false,
+      "annoLayers": ""
+    },
+    {
+      "id": "Street_Resurfacing",
+      "label": "Street Resurfacing",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/PW/StreetResurfacing/MapServer",
+      "type": "dynamic",
+      "opacity": 1.0,
+      "transparencySlider": false,
+      "visible": false,
+      "annoLayers": ""
+    },
+    {
+      "id": "Traffic_Control_Permits",
+      "label": "Traffic Control Permits",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/PW/TrafficControlPermits/MapServer",
+      "type": "dynamic",
+      "opacity": 1.0,
+      "transparencySlider": false,
+      "visible": false,
+      "annoLayers": ""
+    },
+    {
+      "id": "Eastside_Investment_Zone",
+      "label": "Eastside Investment Zone",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/maps/EastsideInvestmentZone/MapServer",
+      "type": "dynamic",
+      "opacity": 1.0,
+      "transparencySlider": false,
+      "visible": false,
+      "annoLayers": ""
+    },
+    {
+      "id": "Central_City_Economic_Development",
+      "label": "Central City Economic Development",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/maps/CentralCityEconomicDevelopment/MapServer",
+      "type": "dynamic",
+      "opacity": 1.0,
+      "transparencySlider": false,
+      "visible": false,
+      "annoLayers": ""
+    },
+    {
+      "id": "Streetcar_TDD",
+      "label": "Streetcar TDD",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/maps/MainStreetStreetcarTDD/MapServer",
+      "type": "dynamic",
+      "opacity": 1.0,
+      "transparencySlider": false,
+      "visible": false,
+      "annoLayers": ""
+    },
+    {
+      "id": "Special_Business_Districts",
+      "label": "Special Business Districts",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/maps/SpecialBusinessDistricts/MapServer",
+      "type": "dynamic",
+      "opacity": 1.0,
+      "transparencySlider": false,
+      "visible": false,
+      "annoLayers": ""
+    }
+  ],
+  "operationalFeatureLayers": [
+    {
+      "id": "Capital_Projects",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/maps/CapitalProjects/MapServer/0",
+      "url_old": "https://maps5.kcmo.org/kcgis/rest/services/CapitalProjects/CapitalProjectsForCityWebsite/MapServer/0",
+      "displayField": "PROJECTNAME",
+      "infoTemplate": "<B>Type:</B>&nbsp;&nbsp;${PROJECTTYPE}<BR><B>Project ID:</B>&nbsp;&nbsp;${PROJECTID}<BR><B>Project Contact:</B>&nbsp;&nbsp;${PROJECTCONTACTNAME}<BR><B>Project Email:</B>&nbsp;&nbsp;<a href=\"mailto:${PROJECTCONTACTEMAIL}\">${PROJECTCONTACTEMAIL}</a><BR><B>Project Phone:</B>&nbsp;&nbsp;${PROJECTCONTACTPHONENUMBER}<BR><B>Construction&nbsp;Contact:</B>&nbsp;&nbsp;${PROJECTCONTACTNAME2}<BR><B>Construction&nbsp;Email:</B>&nbsp;&nbsp;<a href=\"mailto:${PROJECTCONTACTEMAIL2}\">${PROJECTCONTACTEMAIL2}</a><BR><B>Construction&nbsp;Phone:</B>&nbsp;&nbsp;${PROJECTCONTACTPHONENUMBER2}<BR><B>Resident&nbsp;Project&nbsp;Contact:</B>&nbsp;&nbsp;${RESIDENTPROJECTREPNAME}<BR><B>Resident&nbsp;Project&nbsp;Email:</B>&nbsp;&nbsp;<a href=\"mailto:${RESIDENTPROJECTREPEMAIL}\">${RESIDENTPROJECTREPEMAIL}</a><BR><B>Resident&nbsp;Project&nbsp;Phone:</B>&nbsp;&nbsp;${RESIDENTPROJECTREPPHONE}<BR><B>Project Scope:</B>&nbsp;&nbsp;${PROJECTSCOPE}<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;",
+      "infoTemplateEG": "<B>Type:</B>&nbsp;&nbsp;${PROJECTTYPE}<BR><B>Project ID:</B>&nbsp;&nbsp;${PROJECTID}<BR><B>Project Contact:</B>&nbsp;&nbsp;${PROJECTCONTACTNAME}<BR><B>Project Email:</B>&nbsp;&nbsp;<a href=\"mailto:${PROJECTCONTACTEMAIL}\">${PROJECTCONTACTEMAIL}</a><BR><B>Project Phone:</B>&nbsp;&nbsp;${PROJECTCONTACTPHONENUMBER}<BR><B>Construction&nbsp;Contact:</B>&nbsp;&nbsp;${PROJECTCONTACTNAME2}<BR><B>Construction&nbsp;Email:</B>&nbsp;&nbsp;<a href=\"mailto:${PROJECTCONTACTEMAIL2}\">${PROJECTCONTACTEMAIL2}</a><BR><B>Construction&nbsp;Phone:</B>&nbsp;&nbsp;${PROJECTCONTACTPHONENUMBER2}<BR><B>Resident&nbsp;Project&nbsp;Contact:</B>&nbsp;&nbsp;${RESIDENTPROJECTREPNAME}<BR><B>Resident&nbsp;Project&nbsp;Email:</B>&nbsp;&nbsp;<a href=\"mailto:${RESIDENTPROJECTREPEMAIL}\">${RESIDENTPROJECTREPEMAIL}</a><BR><B>Resident&nbsp;Project&nbsp;Phone:</B>&nbsp;&nbsp;${RESIDENTPROJECTREPPHONE}<BR><B>Project Scope:</B>&nbsp;&nbsp;${PROJECTSCOPE}<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;",
+      "infoWindowWidth": 300,
+      "infoWindowHeight": 340,
+      "opacity": 0.7,
+      "visible": false
+    },
+    {
+      "id": "Outdoor_Advertising_Signs",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/CPD/OutdoorAdvertisingSigns/MapServer/0",
+      "url_old": "https://mapd.kcmo.org/kcgis/rest/services/DataLayers/MapServer/41",
+      "displayField": "PERMITNUMBER",
+      "infoTemplate": "<B>Contact:</B>&nbsp;&nbsp;${CONTACT}<BR><B>Sign Address:</B>&nbsp;&nbsp;${ADDRESS}<BR><B>Face A:</B>&nbsp;&nbsp;${FACEA_ID} / ${FACEA_TYPE}<BR><B>Face B:</B>&nbsp;&nbsp;${FACEB_ID} / ${FACEB_TYPE}<BR><B>Face C:</B>&nbsp;&nbsp;${FACEC_ID} / ${FACEC_TYPE}<BR><B>Face D:</B>&nbsp;&nbsp;${FACED_ID} / ${FACED_TYPE}<BR><a href=\"https://compasskc.kcmo.org/EnerGov_Prod/SelfService/#/permit/${PMPERMITID}\" target=\"_blank\">More...</a>",
+      "infoTemplateEG": "<B>Contact:</B>&nbsp;&nbsp;${CONTACT}<BR><B>Sign Address:</B>&nbsp;&nbsp;${ADDRESS}<BR><B>Face A:</B>&nbsp;&nbsp;${FACEA_ID} / ${FACEA_TYPE}<BR><B>Face B:</B>&nbsp;&nbsp;${FACEB_ID} / ${FACEB_TYPE}<BR><B>Face C:</B>&nbsp;&nbsp;${FACEC_ID} / ${FACEC_TYPE}<BR><B>Face D:</B>&nbsp;&nbsp;${FACED_ID} / ${FACED_TYPE}<BR><a href=\"https://egprdapp.kcmogis.kc.lan/energov_prod/managepermit/#/permit/${PMPERMITID}\" target=\"_blank\">More...</a>",
+      "infoWindowWidth": 275,
+      "infoWindowHeight": 160,
+      "opacity": 1.0,
+      "visible": false
+    },
+    {
+      "id": "Short_Term_Rental",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/NPD/ShortTermRental/MapServer/0",
+      "url_old": "https://mapd.kcmo.org/kcgis/rest/services/DataLayers/MapServer/34",
+      "displayField": "PERMITNUMBER",
+      "infoTemplate": "<B>Address:</B>&nbsp;${ADDRESS}<BR><B>Issue Date:</B>&nbsp;${ISSUEDATE:DateFormat(selector: 'date', fullYear: true)}<BR><B>Expire Date:</B>&nbsp;${EXPIREDATE:DateFormat(selector: 'date', fullYear: true)}<BR><a href=\"https://compasskc.kcmo.org/EnerGov_Prod/SelfService/#/permit/${PMPERMITID}\" target=\"_blank\">More...</a>",
+      "infoTemplateEG": "<B>Address:</B>&nbsp;${ADDRESS}<BR><B>Issue Date:</B>&nbsp;${ISSUEDATE:DateFormat(selector: 'date', fullYear: true)}<BR><B>Expire Date:</B>&nbsp;${EXPIREDATE:DateFormat(selector: 'date', fullYear: true)}<BR><a href=\"https://egprdapp.kcmogis.kc.lan/energov_prod/managepermit/#/permit/${PMPERMITID}\" target=\"_blank\">More...</a>",
+      "infoWindowWidth": 225,
+      "infoWindowHeight": 110,
+      "opacity": 1.0,
+      "visible": false
+    },
+    {
+      "id": "Major_Street_Plan_-_Typology",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/CPD/MajorStreetPlan_Typology/MapServer/0",
+      "displayField": "STREETNAME",
+      "infoTemplateTitle": "${STREETNAME}",
+      "infoTemplate": "<B>Typology:</B>&nbsp;&nbsp;${TYPOLOGY}<BR><B>Functional Class:</B>&nbsp;&nbsp;${MSP_FUNCLS}<BR><B>Governance:</B>&nbsp;&nbsp;${GOVERNANCE}<BR><B>Status:</B>&nbsp;&nbsp;${STATUS}<BR><B>Ordinance:</B>&nbsp;&nbsp;${ORDINANCE}",
+      "infoTemplateEG": "<B>Typology:</B>&nbsp;&nbsp;${TYPOLOGY}<BR><B>Functional Class:</B>&nbsp;&nbsp;${MSP_FUNCLS}<BR><B>Governance:</B>&nbsp;&nbsp;${GOVERNANCE}<BR><B>Status:</B>&nbsp;&nbsp;${STATUS}<BR><B>Ordinance:</B>&nbsp;&nbsp;${ORDINANCE}",
+      "infoWindowWidth": 250,
+      "infoWindowHeight": 120,
+      "opacity": 1.0,
+      "visible": false
+    },
+    {
+      "id": "Major_Street_Plan_-_Lanes",
+      "url": "https://maps2.kcmo.org/kcgis/rest/services/ParcelViewer/MajorStreetPlan_Lanes/MapServer/0",
+      "url_old": "https://mapd.kcmo.org/kcgis/rest/services/CPD/MajorStreetPlan_Lanes/MapServer/0",
+      "displayField": "STREETNAME",
+      "infoTemplateTitle": "${STREETNAME}",
+      "infoTemplate": "<B>Typology:</B>&nbsp;&nbsp;${TYPOLOGY}<BR><B>Functional Class:</B>&nbsp;&nbsp;${MSP_FUNCLS}<BR><B>Governance:</B>&nbsp;&nbsp;${GOVERNANCE}<BR><B>Status:</B>&nbsp;&nbsp;${STATUS}<BR><B>Ordinance:</B>&nbsp;&nbsp;${ORDINANCE}",
+      "infoTemplateEG": "<B>Typology:</B>&nbsp;&nbsp;${TYPOLOGY}<BR><B>Functional Class:</B>&nbsp;&nbsp;${MSP_FUNCLS}<BR><B>Governance:</B>&nbsp;&nbsp;${GOVERNANCE}<BR><B>Status:</B>&nbsp;&nbsp;${STATUS}<BR><B>Ordinance:</B>&nbsp;&nbsp;${ORDINANCE}",
+      "infoWindowWidth": 250,
+      "infoWindowHeight": 120,
+      "opacity": 1.0,
+      "visible": false
+    },
+    {
+      "id": "Pending_Cases",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/CPD/DevelopmentCases/MapServer/0",
+      "displayField": "PROJECTNAME",
+      "infoTemplateTitle": "${PROJECTNAME}",
+      "infoTemplate": "<B>Plan Number:</B>&nbsp;${PLANNUMBER}<BR><B>Type:</B>&nbsp;${PLANTYPE}<BR><B>Work Class:</B>&nbsp;${WORKCLASS}<BR><B>Planner:</B>&nbsp;<a href=\"mailto:${PLANNER_EMAIL}?subject=${PLANTYPE} (${PLANNUMBER})\">${PLANNER}</a><BR><B>Status:</B>&nbsp;${STATUS}<BR><B>Apply Date:</B>&nbsp;${APPLICATIONDATE:DateFormat(selector: 'date', fullYear: true)}<BR><B>Next Hearing Date:</B>&nbsp;${NEXTHEARINGDATE:DateFormat(selector: 'shortDateShortTime', fullYear: true)}<BR><a href=\"https://compasskc.kcmo.org/EnerGov_Prod/SelfService/#/plan/${PLPLANID}\" target=\"_blank\">View on CompassKC</a>",
+      "infoTemplateEG": "<B>Plan Number:</B>&nbsp;${PLANNUMBER}<BR><B>Type:</B>&nbsp;${PLANTYPE}<BR><B>Work Class:</B>&nbsp;${WORKCLASS}<BR><B>Planner:</B>&nbsp;<a href=\"mailto:${PLANNER_EMAIL}?subject=${PLANTYPE} (${PLANNUMBER})\">${PLANNER}</a><BR><B>Status:</B>&nbsp;${STATUS}<BR><B>Apply Date:</B>&nbsp;${APPLICATIONDATE:DateFormat(selector: 'date', fullYear: true)}<BR><B>Next Hearing Date:</B>&nbsp;${NEXTHEARINGDATE:DateFormat(selector: 'shortDateShortTime', fullYear: true)}<BR><a href=\"https://egprdapp.kcmogis.kc.lan/energov_prod/manageplan/#/plan/${PLPLANID}\" target=\"_blank\">EnerGov</a>",
+      "infoWindowWidth": 350,
+      "infoWindowHeight": 175,
+      "opacity": 1.0,
+      "visible": false
+    },
+    {
+      "id": "Recently_Completed_(in_the_last_year)",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/CPD/DevelopmentCases/MapServer/1",
+      "displayField": "PROJECTNAME",
+      "infoTemplateTitle": "${PROJECTNAME}",
+      "infoTemplate": "<B>Plan Number:</B>&nbsp;${PLANNUMBER}<BR><B>Type:</B>&nbsp;${PLANTYPE}<BR><B>Work Class:</B>&nbsp;${WORKCLASS}<BR><B>Planner:</B>&nbsp;<a href=\"mailto:${PLANNER_EMAIL}?subject=${PLANTYPE} (${PLANNUMBER})\">${PLANNER}</a><BR><B>Status:</B>&nbsp;${STATUS}<BR><B>Apply Date:</B>&nbsp;${APPLICATIONDATE:DateFormat(selector: 'date', fullYear: true)}<BR><B>Complete Date:</B>&nbsp;${COMPLETEDATE:DateFormat(selector: 'date', fullYear: true)}<BR><a href=\"https://compasskc.kcmo.org/EnerGov_Prod/SelfService/#/plan/${PLPLANID}\" target=\"_blank\">View on CompassKC</a>",
+      "infoTemplateEG": "<B>Plan Number:</B>&nbsp;${PLANNUMBER}<BR><B>Type:</B>&nbsp;${PLANTYPE}<BR><B>Work Class:</B>&nbsp;${WORKCLASS}<BR><B>Planner:</B>&nbsp;<a href=\"mailto:${PLANNER_EMAIL}?subject=${PLANTYPE} (${PLANNUMBER})\">${PLANNER}</a><BR><B>Status:</B>&nbsp;${STATUS}<BR><B>Apply Date:</B>&nbsp;${APPLICATIONDATE:DateFormat(selector: 'date', fullYear: true)}<BR><B>Complete Date:</B>&nbsp;${COMPLETEDATE:DateFormat(selector: 'date', fullYear: true)}<BR><a href=\"https://egprdapp.kcmogis.kc.lan/energov_prod/manageplan/#/plan/${PLPLANID}\" target=\"_blank\">EnerGov</a>",
+      "infoWindowWidth": 350,
+      "infoWindowHeight": 165,
+      "opacity": 1.0,
+      "visible": false
+    }
+  ],
+  "geoCodeService": {
+    "url": "http://tasks.arcgisonline.com/ArcGIS/rest/services/Locators/TA_Address_NA_10/GeocodeServer",
+    "outFields": [
+      "*"
+    ]
+  },
+  "parcelService": {
+    "url": "https://mapd.kcmo.org/kcgis/rest/services/DataLayers/MapServer/38",
+    "outFields": [
+      "*"
+    ]
+  },
+  "streets": {
+    "url": "https://mapd.kcmo.org/kcgis/rest/services/DataLayers/MapServer/40",
+    "outFields": [
+      "*"
+    ]
+  },
+  "AddressMaster": {
+    "url": "https://mapd.kcmo.org/kcgis/rest/services/DataLayers/MapServer/39",
+    "Pin_Field": "PIN",
+    "outFields": [
+      "*"
+    ]
+  },
+  "Address": {
+    "url": "https://maps.kcmo.org/kcgis/rest/services/external/Tables/MapServer/0",
+    "Pin_Field": "PIN",
+    "outFields": [
+      "*"
+    ]
+  },
+  "parcelPlus": {
+    "url": "https://maps.kcmo.org/kcgis/rest/services/external/Tables/MapServer/1",
+    "Pin_Field": "PIN",
+    "outFields": [
+      "*"
+    ]
+  },
+  "streetIntersection": {
+    "url": "https://mapd.kcmo.org/kcgis/rest/services/DataLayers/MapServer/2",
+    "outFields": [
+      "*"
+    ]
+  },
+  "streetLights": {
+    "url": "https://mapd.kcmo.org/kcgis/rest/services/DataLayers/MapServer/0",
+    "serviceId": "Overlays",
+    "zoomLevel": 9,
+    "layerNum": "0",
+    "outFields": [
+      "*"
+    ]
+  },
+  "landMarks": {
+    "url": "https://mapd.kcmo.org/kcgis/rest/services/DataLayers/MapServer/33",
+    "zoomLevel": 8,
+    "outFields": [
+      "*"
+    ]
+  },
+  "NeighborhoodAssocService": {
+    "url": "https://mapd.kcmo.org/kcgis/rest/services/DataLayers/MapServer/4",
+    "outFields": [
+      "*"
+    ]
+  },
+  "HomeAssocService": {
+    "url": "https://mapd.kcmo.org/kcgis/rest/services/DataLayers/MapServer/5",
+    "outFields": [
+      "*"
+    ]
+  },
+  "NeighorhoodGroups": {
+    "url": "https://neighborhooddirect.kcmo.org/forms/form-search.html?group_id=",
+    "url_old2": "https://city.kcmo.org/kc/NeighborhoodGroups/GroupView.aspx?groupID=",
+    "url_old1": "http://webfusion.kcmo.org/coldfusionapps/neighborhood/groups/groupshow.cfm?GroupID="
+  },
+  "PeopleSoft": {
+    "open_url": "http://pscrprd.kc.lan/psp/PSCRPRD/EMPLOYEE/CRM/c/CALLCENTER.RC_CASE_MAP.GBL?page=RC_CASE&BUSINESS_UNIT=KCM01&DISP_TMPL_ID=CRM_GOV&CASE_ID=",
+    "open_url_citizen_old": "http://webfusion.kcmo.org/coldfusionapps/ActionCenterRequest/CaseInfo.cfm?CaseID=",
+    "open_url_citizen": "http://city.kcmo.org/kc/ActionCenterRequest/CaseInfo.aspx?CaseID=",
+    "create_url": "http://pscrprd.kc.lan/psp/PSCRPRD/EMPLOYEE/CRM/c/CALLCENTER.RC_CASE.GBL?&DISP_TMPL_ID=CRM_GOV&ADDRESS1=${concatADDR}&CITY=Kansas City&State=MO&ZIP=${ZIP}&PIN=${PIN}&PARCEL_ID=${APN}&AIN=${AIN}&ACTION=A"
+  },
+  "EnerGov": {
+    "viewPermit_url": "https://compasskc.kcmo.org/EnerGov_Prod/SelfService/#/permit/",
+    "editPermit_url": "https://egprdapp.kcmogis.kc.lan/energov_prod/managepermit/#/permit/",
+    "viewPlan_url": "https://compasskc.kcmo.org/EnerGov_Prod/SelfService/#/plan/",
+    "editPlan_url": "https://egprdapp.kcmogis.kc.lan/energov_prod/manageplan/#/plan/",
+    "viewCodeCase_url": "https://compasskc.kcmo.org/EnerGov_Prod/SelfService/#/code/",
+    "editCodeCase_url": "https://egprdapp.kcmogis.kc.lan/energov_prod/managecodecase/#/code-case/",
+    "viewBusinessLicense_url": "https://compasskc.kcmo.org/EnerGov_Prod/SelfService/#/businessLicense/",
+    "editBusinessLicense_url": "https://egprdapp.kcmogis.kc.lan/energov_prod/managebusinesslicense/#/business-license/",
+    "parcelManager_url": "https://egprdapp.kcmogis.kc.lan/energov_prod/maps/#/parcel/"
+  },
+  "my311Cases": {
+    "url": "https://mapd.kcmo.org/kcgis/rest/services/Tables/MapServer/3",
+    "url_geo": "https://mapd.kcmo.org/kcgis/rest/services/DataLayers/MapServer/51",
+    "outFields": [
+      "*"
+    ]
+  },
+  "myKCMO": {
+    "urlInternal": "https://mycity.mycivicapps.com/rai_v3/index/10871?report_id=",
+    "urlExternal": "https://webrai.mycivicapps.com/kansascitymo?report_id="
+  },
+  "Open311Cases": {
+    "url": "https://maps.kcmo.org/kcgis/rest/services/external/DataLayers/MapServer/9",
+    "outFields": [
+      "*"
+    ]
+  },
+  "Open311CasesSubmitted": {
+    "url": "https://maps.kcmo.org/kcgis/rest/services/external/DataLayers/MapServer/11",
+    "outFields": [
+      "*"
+    ]
+  },
+  "RecentlyClosed311Cases": {
+    "url": "https://maps.kcmo.org/kcgis/rest/services/external/DataLayers/MapServer/34",
+    "outFields": [
+      "*"
+    ]
+  },
+  "ServiceRequests_OLD": {
+    "url": "https://mapd.kcmo.org/kcgis/rest/services/DataLayers/MapServer/10",
+    "outFields": [
+      "*"
+    ]
+  },
+  "tables": [
+    {
+      "id": "Address",
+      "field": "PIN",
+      "url": "https://maps.kcmo.org/kcgis/rest/services/external/Tables/MapServer/0"
+    },
+    {
+      "id": "Parcel",
+      "field": "PIN",
+      "url": "https://maps.kcmo.org/kcgis/rest/services/external/Tables/MapServer/1"
+    },
+    {
+      "id": "GeocodesPerPin",
+      "field": "KIVA_PIN",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/Tables/MapServer/2"
+    },
+    {
+      "id": "ParcelAddressCount",
+      "field": "PIN",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/Tables/MapServer/1"
+    },
+    {
+      "id": "egParcelPermits",
+      "field": "PARCELNUMBER",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/EnerGov/ParcelPermitsPlans/MapServer/1"
+    },
+    {
+      "id": "egParcelPlans",
+      "field": "PARCELNUMBER",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/EnerGov/ParcelPermitsPlans/MapServer/2"
+    },
+    {
+      "id": "egParcelRecordCounts",
+      "field": "PARCELNUMBER",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/EnerGov/ParcelPermitsPlans/MapServer/3"
+    },
+    {
+      "id": "egParcelCodeCases",
+      "field": "PARCELNUMBER",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/EnerGov/ParcelPermitsPlans/MapServer/4"
+    },
+    {
+      "id": "egParcelBusinessLicenses",
+      "field": "PARCELNUMBER",
+      "url": "https://mapd.kcmo.org/kcgis/rest/services/EnerGov/ParcelPermitsPlans/MapServer/5"
+    }
+  ],
+  "autoCompletQuery": {
+    "url": "https://mapd.kcmo.org/kcgis/rest/services/DataLayers/MapServer/39",
+    "outFields": [
+      "*"
+    ]
+  },
+  "addressQuery": {
+    "url": "https://maps.kcmo.org/kcgis/rest/services/external/Tables/MapServer/0",
+    "searchField": "CONCAT",
+    "outFields": [
+      "*"
+    ]
+  },
+  "feedbackService": {
+    "url": "https://mapd.kcmo.org/kcgis/rest/services/GPServices/WebAppTools/GPServer/SendFeedback",
+    "url_old": "https://maps.kcmo.org/kcgis/rest/services/external/WebAppTools/GPServer/SendFeedback",
+    "toAddress": "maps@kcmo.org",
+    "subject": "KCMO Parcel Viewer Feedback"
+  },
+  "averyLabelService": {
+    "url_label_old": "https://maps.kcmo.org/kcgis/rest/services/external/PublicNotification/GPServer/GenerateAveryLabelsPDF",
+    "url_label": "https://mapd.kcmo.org/kcgis/rest/services/GPServices/PublicNotification/GPServer/GenerateAveryLabelsPDF",
+    "labelOutParam": "AveryLabels_pdf",
+    "url_csv_old": "https://maps.kcmo.org/kcgis/rest/services/external/PublicNotification/GPServer/GenerateCSV",
+    "url_csv": "https://mapd.kcmo.org/kcgis/rest/services/GPServices/PublicNotification/GPServer/GenerateCSV",
+    "csvOutParam": "Address_csv",
+    "AveryLabelTemplates": [
+      {
+        "name": "Avery 5160",
+        "value": "avery5160"
+      },
+      {
+        "name": "Avery 5193",
+        "value": "avery5193"
+      }
+    ]
+  },
+  "exportPDFService": {
+    "url_old": "https://maps.kcmo.org/kcgis/rest/services/external/ExportPDF/GPServer/ExportToPDF",
+    "url": "https://mapd.kcmo.org/kcgis/rest/services/GPServices/ExportToPDF/GPServer/ExportToPDF",
+    "outPDFParamName": "PDF"
+  },
+  "parcelLandUseCodes": [
+    "1111 - Single Family (Non-Mobile Home Park)",
+    "1112 - Mobile Home Park",
+    "1121 - Townhouse",
+    "1122 - Duplex",
+    "1123 - Multifamily - 3 units",
+    "1124 - Multifamily - 4 units",
+    "1125 - Multifamily - 5 units or greater",
+    "1126 - Condominium",
+    "1200 - Hotel / Motel",
+    "2100 - Commercial (Non-Office)",
+    "2200 - Vehicle Sales and Service",
+    "2300 - Office",
+    "2310 - Frequent Visitor Office",
+    "2320 - Infrequent Visitor Office",
+    "3110 - Heavy Industry",
+    "3120 - Light Industry / Storage / Distribution / Vehicle Sale/Service",
+    "3200 - Solid Waste Management",
+    "3210 - Vehicle Salvage",
+    "3220 - Other Solid Waste - collection, storage, landfilling, processing, recycling",
+    "3300 - Construction Yards",
+    "4110 - School",
+    "4120 - Training Outside Classrooms",
+    "4130 - Library",
+    "4200 - Emergency Response / Public Safety",
+    "4300 - Utilities",
+    "4500 - Medical",
+    "4600 - Cemetery",
+    "4700 - Military Base",
+    "4800 - Institutional",
+    "5100 - Pedestrian Movement",
+    "5211 - Garage",
+    "5212 - Paved Parking / Other Paved Lots",
+    "5220 - Driving",
+    "5400 - Railroad",
+    "5500 - Water-Based Movement",
+    "5600 - Airport",
+    "5700 - Spacecraft",
+    "6100 - Bus",
+    "6200 - Spectator Sports",
+    "6300 - Theater",
+    "6400 - Convention and Exhibition",
+    "6500 - Mass Training and Drills",
+    "6610 - Social or Cultural Assembly",
+    "6620 - Church",
+    "6700 - Museum",
+    "6800 - Historical",
+    "7100 - Park",
+    "7200 - Golf Course",
+    "7310 - Condominium Common Area",
+    "7320 - Single Family Common Area",
+    "7330 - Duplex / Townhouse Common Area",
+    "7340 - Multifamily - 3 units - Common Area",
+    "7350 - Multifamily - 4 units - Common Area",
+    "7360 - Multifamily - 5+ units - Common Area",
+    "7400 - Other Recreation",
+    "8100 - Agricultural",
+    "8200 - Horticultural",
+    "8300 - Extraction",
+    "8400 - Forest / Logging",
+    "9100 - Not Applicable",
+    "9210 - Single Family untested for acreage",
+    "9220 - Industrial untested for heavy/light",
+    "9230 - Outbuilding untested for surroundings",
+    "9240 - Misc. improvement untested for surroundings",
+    "9250 - Building on Leased Land",
+    "9260 - Exempt",
+    "9270 - Locally Assessed",
+    "9280 - Condo untested for residence or common area",
+    "9300 - Underground Space",
+    "9400 - Permanent Open Space (e.g. flood)",
+    "9500 - Vacant Residential",
+    "9600 - Vacant Non-Residential (including billboards)"
+  ],
+  "FLU": [
+    "B - Buffer",
+    "C - Commercial",
+    "CI - Commercial/Industrial",
+    "CONS - Conservation",
+    "DC - Downtown Core",
+    "DMU - Downtown Mixed Use",
+    "DR - Downtown Residential",
+    "I - Industrial",
+    "INSTIT - Institutional",
+    "KCIA - KCIA",
+    "LI - Light Industrial",
+    "MUC - Mixed Use Community",
+    "MUN - Mixed Use Neighborhood",
+    "O - Office",
+    "OR - Office/Residential",
+    "OPEN - Open Space/Buffer",
+    "PARK - Park",
+    "RHD - Residential High Density",
+    "RLMD - Residential Low-Medium Density",
+    "RLU - Residential Low (Urban)",
+    "RLD - Residential Low Density",
+    "RLDC - Residential Low Density - Conservation Development",
+    "RMHD - Residential Medium-High Density",
+    "RMD - Residential Medium Density",
+    "RUD - Residential Urban Density",
+    "RULD - Residential Urban Low Density",
+    "RVLD - Residential Very Low Density",
+    "ROW - ROW",
+    "STC - Special Transit Corridor",
+    "TC - Transportation Corridor",
+    "W - Water",
+    "HI - Heavy Industrial",
+    "AR - Agricultural Residential",
+    "HP - Hospital"
+  ]
+}

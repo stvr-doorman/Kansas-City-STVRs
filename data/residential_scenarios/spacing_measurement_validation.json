@@ -1,0 +1,327 @@
+{
+  "projection": "EPSG:26915",
+  "projection_guard": 1.001,
+  "repaired_geometries": 0,
+  "patterns": {
+    "centroid_all": {
+      "400": {
+        "additions": 12026,
+        "minimum_new_to_new_ft": 400.4125686814955,
+        "minimum_new_to_existing_ft": 400.4596472502701,
+        "blocking_existing_parcels": 630
+      },
+      "500": {
+        "additions": 8486,
+        "minimum_new_to_new_ft": 500.50588237574453,
+        "minimum_new_to_existing_ft": 500.8008872766859,
+        "blocking_existing_parcels": 630
+      },
+      "600": {
+        "additions": 6346,
+        "minimum_new_to_new_ft": 600.6014115375851,
+        "minimum_new_to_existing_ft": 600.7170384443159,
+        "blocking_existing_parcels": 630
+      },
+      "700": {
+        "additions": 4917,
+        "minimum_new_to_new_ft": 700.7203690185281,
+        "minimum_new_to_existing_ft": 700.7667536689175,
+        "blocking_existing_parcels": 630
+      },
+      "800": {
+        "additions": 3956,
+        "minimum_new_to_new_ft": 800.8420870658606,
+        "minimum_new_to_existing_ft": 800.9663436359215,
+        "blocking_existing_parcels": 630
+      },
+      "900": {
+        "additions": 3212,
+        "minimum_new_to_new_ft": 900.9220623446286,
+        "minimum_new_to_existing_ft": 901.1019579302671,
+        "blocking_existing_parcels": 630
+      },
+      "1000": {
+        "additions": 2669,
+        "minimum_new_to_new_ft": 1001.0287697780583,
+        "minimum_new_to_existing_ft": 1001.1827248170748,
+        "blocking_existing_parcels": 630
+      },
+      "1100": {
+        "additions": 2272,
+        "minimum_new_to_new_ft": 1101.1796211355127,
+        "minimum_new_to_existing_ft": 1101.1215932662922,
+        "blocking_existing_parcels": 630
+      },
+      "1200": {
+        "additions": 1950,
+        "minimum_new_to_new_ft": 1201.207683144166,
+        "minimum_new_to_existing_ft": 1201.431602687365,
+        "blocking_existing_parcels": 630
+      },
+      "1300": {
+        "additions": 1683,
+        "minimum_new_to_new_ft": 1301.4141239502026,
+        "minimum_new_to_existing_ft": 1301.8342802174857,
+        "blocking_existing_parcels": 630
+      },
+      "1400": {
+        "additions": 1475,
+        "minimum_new_to_new_ft": 1401.4421955415405,
+        "minimum_new_to_existing_ft": 1402.4418555054713,
+        "blocking_existing_parcels": 630
+      },
+      "1500": {
+        "additions": 1301,
+        "minimum_new_to_new_ft": 1501.8300335233926,
+        "minimum_new_to_existing_ft": 1501.6999411998524,
+        "blocking_existing_parcels": 630
+      },
+      "1600": {
+        "additions": 1158,
+        "minimum_new_to_new_ft": 1601.6948254290992,
+        "minimum_new_to_existing_ft": 1602.7642557017614,
+        "blocking_existing_parcels": 630
+      }
+    },
+    "border_all": {
+      "400": {
+        "additions": 6705,
+        "minimum_new_to_new_ft": 400.4113529949664,
+        "minimum_new_to_existing_ft": 400.4014507676871,
+        "blocking_existing_parcels": 630
+      },
+      "500": {
+        "additions": 5155,
+        "minimum_new_to_new_ft": 500.5030576262773,
+        "minimum_new_to_existing_ft": 500.8215333016605,
+        "blocking_existing_parcels": 630
+      },
+      "600": {
+        "additions": 4051,
+        "minimum_new_to_new_ft": 600.6462374950578,
+        "minimum_new_to_existing_ft": 600.6384925940567,
+        "blocking_existing_parcels": 630
+      },
+      "700": {
+        "additions": 3284,
+        "minimum_new_to_new_ft": 700.7145187094845,
+        "minimum_new_to_existing_ft": 700.7633558299042,
+        "blocking_existing_parcels": 630
+      },
+      "800": {
+        "additions": 2702,
+        "minimum_new_to_new_ft": 800.8778558205199,
+        "minimum_new_to_existing_ft": 800.8180494446034,
+        "blocking_existing_parcels": 630
+      },
+      "900": {
+        "additions": 2290,
+        "minimum_new_to_new_ft": 900.9284359295269,
+        "minimum_new_to_existing_ft": 901.034076037349,
+        "blocking_existing_parcels": 630
+      },
+      "1000": {
+        "additions": 1962,
+        "minimum_new_to_new_ft": 1001.0171328069076,
+        "minimum_new_to_existing_ft": 1001.0151597376814,
+        "blocking_existing_parcels": 630
+      },
+      "1100": {
+        "additions": 1688,
+        "minimum_new_to_new_ft": 1101.116226148103,
+        "minimum_new_to_existing_ft": 1101.4487666630184,
+        "blocking_existing_parcels": 630
+      },
+      "1200": {
+        "additions": 1438,
+        "minimum_new_to_new_ft": 1201.2921206044423,
+        "minimum_new_to_existing_ft": 1201.2784186551614,
+        "blocking_existing_parcels": 630
+      },
+      "1300": {
+        "additions": 1281,
+        "minimum_new_to_new_ft": 1301.4245809889983,
+        "minimum_new_to_existing_ft": 1301.5451883454439,
+        "blocking_existing_parcels": 630
+      },
+      "1400": {
+        "additions": 1134,
+        "minimum_new_to_new_ft": 1401.632255479315,
+        "minimum_new_to_existing_ft": 1401.64198538867,
+        "blocking_existing_parcels": 630
+      },
+      "1500": {
+        "additions": 999,
+        "minimum_new_to_new_ft": 1501.5872146614959,
+        "minimum_new_to_existing_ft": 1501.7842197556495,
+        "blocking_existing_parcels": 630
+      },
+      "1600": {
+        "additions": 904,
+        "minimum_new_to_new_ft": 1601.7625492032878,
+        "minimum_new_to_existing_ft": 1602.9830488885084,
+        "blocking_existing_parcels": 630
+      }
+    },
+    "centroid_nonresident": {
+      "400": {
+        "additions": 12427,
+        "minimum_new_to_new_ft": 400.4044757943403,
+        "minimum_new_to_existing_ft": 400.491578063627,
+        "blocking_existing_parcels": 231
+      },
+      "500": {
+        "additions": 8871,
+        "minimum_new_to_new_ft": 500.50588237574453,
+        "minimum_new_to_existing_ft": 500.8008872766859,
+        "blocking_existing_parcels": 231
+      },
+      "600": {
+        "additions": 6731,
+        "minimum_new_to_new_ft": 600.6014115375851,
+        "minimum_new_to_existing_ft": 601.9752728506123,
+        "blocking_existing_parcels": 231
+      },
+      "700": {
+        "additions": 5311,
+        "minimum_new_to_new_ft": 700.7036563559445,
+        "minimum_new_to_existing_ft": 700.7987073445316,
+        "blocking_existing_parcels": 231
+      },
+      "800": {
+        "additions": 4323,
+        "minimum_new_to_new_ft": 800.8420870658606,
+        "minimum_new_to_existing_ft": 800.9588419622487,
+        "blocking_existing_parcels": 231
+      },
+      "900": {
+        "additions": 3573,
+        "minimum_new_to_new_ft": 900.9220623446286,
+        "minimum_new_to_existing_ft": 901.1019579302671,
+        "blocking_existing_parcels": 231
+      },
+      "1000": {
+        "additions": 3010,
+        "minimum_new_to_new_ft": 1001.0070215560198,
+        "minimum_new_to_existing_ft": 1002.0234677757256,
+        "blocking_existing_parcels": 231
+      },
+      "1100": {
+        "additions": 2599,
+        "minimum_new_to_new_ft": 1101.259006238407,
+        "minimum_new_to_existing_ft": 1106.3661898787523,
+        "blocking_existing_parcels": 231
+      },
+      "1200": {
+        "additions": 2244,
+        "minimum_new_to_new_ft": 1201.207683144166,
+        "minimum_new_to_existing_ft": 1201.6423278556051,
+        "blocking_existing_parcels": 231
+      },
+      "1300": {
+        "additions": 1979,
+        "minimum_new_to_new_ft": 1301.415183673677,
+        "minimum_new_to_existing_ft": 1303.1867754389018,
+        "blocking_existing_parcels": 231
+      },
+      "1400": {
+        "additions": 1774,
+        "minimum_new_to_new_ft": 1401.4181398239975,
+        "minimum_new_to_existing_ft": 1401.7427774075877,
+        "blocking_existing_parcels": 231
+      },
+      "1500": {
+        "additions": 1575,
+        "minimum_new_to_new_ft": 1501.5801827271455,
+        "minimum_new_to_existing_ft": 1506.031929267138,
+        "blocking_existing_parcels": 231
+      },
+      "1600": {
+        "additions": 1436,
+        "minimum_new_to_new_ft": 1601.6948254290992,
+        "minimum_new_to_existing_ft": 1603.2313918641973,
+        "blocking_existing_parcels": 231
+      }
+    },
+    "border_nonresident": {
+      "400": {
+        "additions": 7090,
+        "minimum_new_to_new_ft": 400.4113529949664,
+        "minimum_new_to_existing_ft": 401.2808948615246,
+        "blocking_existing_parcels": 231
+      },
+      "500": {
+        "additions": 5536,
+        "minimum_new_to_new_ft": 500.5030576262773,
+        "minimum_new_to_existing_ft": 500.8215333016605,
+        "blocking_existing_parcels": 231
+      },
+      "600": {
+        "additions": 4427,
+        "minimum_new_to_new_ft": 600.6017746562359,
+        "minimum_new_to_existing_ft": 600.9894633243283,
+        "blocking_existing_parcels": 231
+      },
+      "700": {
+        "additions": 3645,
+        "minimum_new_to_new_ft": 700.7145187094845,
+        "minimum_new_to_existing_ft": 701.8923535263499,
+        "blocking_existing_parcels": 231
+      },
+      "800": {
+        "additions": 3060,
+        "minimum_new_to_new_ft": 800.8223225307268,
+        "minimum_new_to_existing_ft": 800.8180494446034,
+        "blocking_existing_parcels": 231
+      },
+      "900": {
+        "additions": 2617,
+        "minimum_new_to_new_ft": 900.9284359295269,
+        "minimum_new_to_existing_ft": 900.911313053341,
+        "blocking_existing_parcels": 231
+      },
+      "1000": {
+        "additions": 2272,
+        "minimum_new_to_new_ft": 1001.0171328069076,
+        "minimum_new_to_existing_ft": 1001.1583573514455,
+        "blocking_existing_parcels": 231
+      },
+      "1100": {
+        "additions": 1995,
+        "minimum_new_to_new_ft": 1101.105447409366,
+        "minimum_new_to_existing_ft": 1102.0998150165235,
+        "blocking_existing_parcels": 231
+      },
+      "1200": {
+        "additions": 1737,
+        "minimum_new_to_new_ft": 1201.2297263553507,
+        "minimum_new_to_existing_ft": 1202.3154192727104,
+        "blocking_existing_parcels": 231
+      },
+      "1300": {
+        "additions": 1558,
+        "minimum_new_to_new_ft": 1301.4245809889983,
+        "minimum_new_to_existing_ft": 1304.6719298033474,
+        "blocking_existing_parcels": 231
+      },
+      "1400": {
+        "additions": 1414,
+        "minimum_new_to_new_ft": 1401.4706036097866,
+        "minimum_new_to_existing_ft": 1406.0878606033402,
+        "blocking_existing_parcels": 231
+      },
+      "1500": {
+        "additions": 1279,
+        "minimum_new_to_new_ft": 1501.637890360159,
+        "minimum_new_to_existing_ft": 1501.8603671055887,
+        "blocking_existing_parcels": 231
+      },
+      "1600": {
+        "additions": 1156,
+        "minimum_new_to_new_ft": 1601.82347659288,
+        "minimum_new_to_existing_ft": 1601.7310726970495,
+        "blocking_existing_parcels": 231
+      }
+    }
+  }
+}

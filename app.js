@@ -13,6 +13,7 @@ const ESTIMATED_STVR_FEE=1170;
 let listings=[], permits=[], report, visible=[], selectedHost='', selectedHostMetric='', map, popup, emojiMarkers=[], refreshTimer;
 const permitGrid = new Map(), addressCache = new Map(), connectionLabelGroups=new Map(), fallbackParcelLookups=new Map();
 let currentPermits=[], parcelManifest, addressRequest=0;
+let listingPlotAddresses={records:{}};
 let spatial={available:false}, balance=[], balanceKey=null;
 let selectedListing=null, hoveredPrivacyId=null, selectedPartyCombo='', selectedPartyRequireCapacity=false, pendingHostKey='';
 let nameMatchingData={},parcelMatchingData=null, permitSavedDetails=null, permitLocationPoints=null, licensedParcels=null, permitParcels=null, activeListingPointIndex=null;
@@ -137,14 +138,14 @@ function updateInventoryEstimate(){
   const low=Math.min(...endpoints.map(e=>e.count)),high=Math.max(...endpoints.map(e=>e.count));
   const pctLow=Math.min(...endpoints.map(e=>e.percent)),pctHigh=Math.max(...endpoints.map(e=>e.percent));
   const fmt=n=>n.toLocaleString(),money=n=>n.toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0});
-  const range=low===high?fmt(low):`${fmt(low)}–${fmt(high)}`;
-  const percent=pctLow===pctHigh?`${pctLow.toFixed(1)}%`:`${pctLow.toFixed(1)}–${pctHigh.toFixed(1)}%`;
+  const range=low===high?fmt(low):`${fmt(low)} to ${fmt(high)}`;
+  const percent=pctLow===pctHigh?`${pctLow.toFixed(1)}%`:`${pctLow.toFixed(1)} to ${pctHigh.toFixed(1)}%`;
   $('potentiallyLicensedCount').textContent=`${visible.filter(potentiallyLicensed).length.toLocaleString()} potentially licensed`;
   $('potentiallyLicensedCount').title='Filtered listing dots showing a permit number absent from CompassKC; licensing remains unverified. Includes dots outside the current map view.';
   $('potentiallyUnlicensedCount').textContent=`Current estimate: up to ~${fmt(high)} potentially unlicensed`;
   const equation=endpoints.map(e=>`Edge buffer ${e.buffer>0?'+':''}${e.buffer} m: ${fmt(e.total)} filtered listings − ${fmt(e.hotels)} likely hotels − ${fmt(current)} current city permits = ${fmt(e.count)} potentially unlicensed (${e.percent.toFixed(1)}%).`).join(' ');
   $('potentiallyUnlicensedCount').title=equation+' Other active filters are retained; map viewport does not affect this range. This inventory estimate does not identify individual unlicensed listings.';
-  const revenueLow=money(low*ESTIMATED_STVR_FEE),revenueHigh=money(high*ESTIMATED_STVR_FEE),revenue=low===high?revenueLow:`${revenueLow}–${revenueHigh}`;
+  const revenueLow=money(low*ESTIMATED_STVR_FEE),revenueHigh=money(high*ESTIMATED_STVR_FEE),revenue=low===high?revenueLow:`${revenueLow} to ${revenueHigh}`;
   $('potentialRevenueButton').textContent=`Potential license revenue shortfall ${revenue}`;
   $('revenueEquation').textContent=equation+` ${range} × $${ESTIMATED_STVR_FEE} = ${revenue} potential license revenue shortfall.`;
   $('revenueSnapshotNote').textContent=`Snapshot date: ${report.as_of}. Range uses the minimum and maximum edge buffers with other active filters, regardless of viewport. Unmapped listings are excluded. It subtracts all current city permits, assumes one permit per non-hotel listing, and clamps negative differences to zero. It does not verify individual listing authorization.`;
@@ -218,6 +219,7 @@ function matchesPermitStatus(listing,status){
 const screeningNameCache=new WeakMap(),screeningNameLookups=new Map();
 let screeningLookupRunning=false;
 function screeningNames(listing){
+  if(listing.user_address)return [];
   const live=fallbackParcelLookups.get(listing.listing_id)?.data||screeningNameLookups.get(listing.listing_id)?.data;
   const previous=screeningNameCache.get(listing);
   if(previous&&previous.live===live)return previous.rows;
@@ -305,10 +307,10 @@ function filterListings(skipAuto=false, includeLowPriority=false, scopeBuffer=nu
   return matching(selectedPartyRequireCapacity);
 }
 function exploreFiltersActive() {
-  const controls=[...document.querySelectorAll('#filters input,#filters select')].filter(control=>!control.disabled);
+  const controls=[...document.querySelectorAll('#filters input,#filters select')].filter(control=>!control.disabled&&!control.closest('#gisParcelSearch'));
   return Boolean(selectedHost||selectedPartyCombo||selectedPartyRequireCapacity)||controls.some(control=>{
     if(control.type==='checkbox'||control.type==='radio')return control.checked!==control.defaultChecked;
-    if(control.tagName==='SELECT')return control.selectedIndex!==0;
+    if(control.tagName==='SELECT')return control.selectedIndex!==Math.max(0,[...control.options].findIndex(option=>option.defaultSelected));
     return control.value!==control.defaultValue;
   });
 }
@@ -323,10 +325,11 @@ function updateExploreClearButton() {
 function resetExploreFilters() {
   BrowserState.clear();
   for(const control of document.querySelectorAll('#filters input')){
+    if(control.closest('#gisParcelSearch'))continue;
     if(control.type==='checkbox')control.checked=control.defaultChecked;
     else control.value=control.defaultValue;
   }
-  for(const control of document.querySelectorAll('#filters select'))control.selectedIndex=0;
+  for(const control of document.querySelectorAll('#filters select'))control.selectedIndex=Math.max(0,[...control.options].findIndex(option=>option.defaultSelected));
   selectedHost='';selectedHostMetric='';selectedPartyCombo='';selectedPartyRequireCapacity=false;
   $('hostSearch').value='';
   update();
@@ -400,7 +403,7 @@ function sourceData(id,data) {
 function layerVisibility(ids,on) { for(const id of ids) if(map.getLayer(id)) map.setLayoutProperty(id,'visibility',on?'visible':'none'); }
 function updatePrivacy() {
   const subjects=selectedListing?[selectedListing]:visible;
-  sourceData('privacy',collection($('privacy').checked?subjects.filter(l=>l.privacy_radius_meters>0||l===selectedListing).map(l=>{const radius=l.privacy_radius_meters>0?l.privacy_radius_meters:15;const f=feature(ring(l.point,radius),{id:l.listing_id,selected:l===selectedListing,radius_m:radius,radius_source:l.privacy_radius_meters>0?'airbnb_listing_data':'display_fallback'});f.id=l.listing_id;return f;}):[]));
+  sourceData('privacy',collection($('privacy').checked?subjects.filter(l=>!l.user_address&&(l.privacy_radius_meters>0||l===selectedListing)).map(l=>{const radius=l.privacy_radius_meters>0?l.privacy_radius_meters:15;const f=feature(ring(l.point,radius),{id:l.listing_id,selected:l===selectedListing,radius_m:radius,radius_source:l.privacy_radius_meters>0?'airbnb_listing_data':'display_fallback'});f.id=l.listing_id;return f;}):[]));
 }
 
 function update() {
@@ -413,6 +416,7 @@ function update() {
   map.setLayoutProperty('listing-labels','visibility',$('legendGuestLabels').checked?'visible':'none');
   for(const input of document.querySelectorAll('.low-priority:checked'))input.checked=false;
   visible=filterListings();
+  AreaStats.update();
   $('expiredMajorCount').textContent=listings.filter(l=>l.point&&(l.matched_permits||[]).some(expiredMajorPermit)).length.toLocaleString();
   activeListingPointIndex=selectedHost?listingPointIndex(visible):null;
   sourceData('listings',collection(visible.map(listingFeature)));
@@ -619,7 +623,7 @@ function setupResponsivePanels() {
   const sync=()=>{
     const mobile=matchMedia('(max-width: 700px)').matches;
     if(mobile!==wasMobile){
-      if(mobile){filters.classList.add('collapsed');details.open=false;}
+      if(mobile){filters.classList.remove('collapsed');details.open=false;}
       else filters.classList.remove('collapsed');
       wasMobile=mobile;
     }
@@ -632,7 +636,7 @@ function setupResponsivePanels() {
     else filters.classList.add('collapsed');
     sync();
   };
-  details.addEventListener('toggle',()=>{if(matchMedia('(max-width: 700px)').matches&&details.open)filters.classList.add('collapsed');sync();});
+  details.addEventListener('toggle',()=>{if(!filters.contains(hosts)&&matchMedia('(max-width: 700px)').matches&&details.open)filters.classList.add('collapsed');sync();});
   window.addEventListener('resize',sync);sync();
 }
 function showNearbyPermitListings(permit, container) {
@@ -762,7 +766,7 @@ async function renderListingAssociations(listing,container){
   try{for(const p of await Reporting.loadCandidates(listing)){const existing=rows.filter(m=>normalizeParcel(m.parcel)===normalizeParcel(p.parcel));if(existing.length)existing.forEach(m=>{m.point=p.point;m.geometry=p.geometry;});else rows.push({...p,type:'distance'});}}catch(e){container.textContent=`Nearby properties unavailable: ${e.message}`;return;}
   container.replaceChildren();for(const row of rows.sort(associationOrder)){const button=document.createElement('button');button.className='license-listing-candidate';button.innerHTML=`${candidateBadges(listing,row)}<strong>${esc(row.address)}</strong><span>Owner: ${esc(row.owner||'Unavailable')} · ${row.distance_m==null?'Distance unavailable':row.distance_m.toFixed(1)+' m to parcel boundary'}</span>`;bindCandidatePreview(button,listing,row);button.onclick=()=>{pinCandidate(listing,row);colorNameMatches(listing,rows);};container.append(button);}for(const button of container.querySelectorAll('button')){const enter=button.onmouseenter;button.onmouseenter=button.onfocus=()=>{enter();colorNameMatches(listing,rows);};}if(!rows.length)container.textContent='No candidates found.';
 }
-function needsParcelFallback(listing){return permitParcelLinks([listing]).length===0;}
+function needsParcelFallback(listing){return !listing.user_address&& permitParcelLinks([listing]).length===0;}
 function parcelMatchRadius(){return Math.min(550,Math.max(160,Number($('parcelMatchRadius').value)||160));}
 function renderFallbackAssociations(listing,container){
   if(!container)return;
@@ -814,10 +818,19 @@ function showListing(l, nearbyPermit=null) {
     toggle.textContent='Show';toggle.setAttribute('aria-expanded','false');
   }
   popup?.remove();
-  selectedListing=l;updatePrivacy();
+  selectedListing=l;UserAddresses.select(l);updatePrivacy();
   const privacy=l.privacy_radius_meters===null?'Unknown':`${l.privacy_radius_meters} m`;
   const listingSource=`<a href="${esc(l.url)}" target="_blank" rel="noopener">Airbnb.com listing</a>`;
-  let html=`<h3>${esc(l.title||'Airbnb listing')}</h3>${numberMode()?'':`<span class="badge ${esc(communityStatus(l))}">${esc(communityStatusNames[communityStatus(l)])}</span>`}<p><a href="${esc(l.url)}" target="_blank" rel="noopener">Open Airbnb listing ↗</a></p><p><b>Host:</b> <button type="button" class="popup-host-select" data-select-host>${esc(l.host_name||'Unknown')}</button><br><b>Guests:</b> ${esc(l.guests??'Unknown')} · <b>Bedrooms:</b> ${esc(l.bedrooms??'Unknown')}<br><b>Capacity:</b> ${esc(l.allowed_guests??"Unknown (bedrooms missing)")} guests${overCapacityFlag(l)?`<br><b>Over capacity:</b> <a href="https://clerk.kcmo.gov/LegislationDetail.aspx?FullText=1&GUID=1BE0BD45-990E-423A-958E-1CA02BD2E626&ID=7726282&Options=&Search=" target="_blank" rel="noopener">${esc(l.over_capacity)} guests · Kansas City rules ↗</a>`:''}<br><b>Airbnb privacy radius:</b> ${esc(privacy)}<br><b>Approximate location:</b> ${esc(l.approximate_address||l.location_name||'Unknown')}</p>`;
+  let html=`<h3>${esc(l.title||'Airbnb listing')}</h3>${numberMode()?'':`<span class="badge ${esc(communityStatus(l))}">${esc(communityStatusNames[communityStatus(l)])}</span>`}<p><a href="${esc(l.url)}" target="_blank" rel="noopener">Open Airbnb listing ↗</a></p><p><b>Host:</b> <button type="button" class="popup-host-select" data-select-host>${esc(l.host_name||'Unknown')}</button><br><b>Guests:</b> ${esc(l.guests??'Unknown')} · <b>Bedrooms:</b> ${esc(l.bedrooms??'Unknown')}<br><b>Capacity:</b> ${esc(l.allowed_guests??"Unknown (bedrooms missing)")} guests${overCapacityFlag(l)?`<br><b>Over capacity:</b> <a href="https://clerk.kcmo.gov/LegislationDetail.aspx?FullText=1&GUID=1BE0BD45-990E-423A-958E-1CA02BD2E626&ID=7726282&Options=&Search=" target="_blank" rel="noopener">${esc(l.over_capacity)} guests · Kansas City rules ↗</a>`:''}<br><b>Airbnb privacy radius:</b> ${esc(privacy)}</p>`;
+  html+=`<p><button type="button" data-copy-privacy-streets>Copy streets, cities &amp; ZIPs in privacy radius</button><br><span class="small muted" data-privacy-street-status aria-live="polite">Uses the reported Airbnb radius and saved street GIS; no house numbers are copied.</span></p>`;
+  const permitAddresses=[...new Set((l.matched_permits||[]).map(p=>p.address).filter(Boolean))];
+  if(l.user_address)html+=`<p><b>Address confirmed by user:</b> ${esc(l.user_address.address)}<br>Parcel ${esc(l.user_address.parcel)} · <a href="${esc(l.user_address.source)}" target="_blank" rel="noopener">GIS source</a><br><span class="small muted">Pin placed inside this parcel. This address correction does not establish permit status.</span></p>`;
+  else if(permitAddresses.length)html+=`<p><b>Address from matched permit number:</b> ${permitAddresses.map(esc).join('; ')}<br><span class="small muted">City permit record; specific listing / dwelling unit remains unverified.</span></p>`;
+  const plotAddress=listingPlotAddresses.records[String(l.listing_id)];
+  if(!l.user_address&&!permitAddresses.length&&plotAddress&&l.point&&plotAddress.point[0]===l.point[0]&&plotAddress.point[1]===l.point[1]&&plotAddress.parcels.some(p=>p.address)){
+    html+=`<p data-underlying-plot><b>${plotAddress.parcels.length===1?'Approximate location (GIS plot address)':'Approximate location (overlapping GIS plots)'}:</b><br>${plotAddress.parcels.map(p=>`${esc(p.address||'Address unavailable')} · Parcel ${esc(p.parcel)}`).join('<br>')}<br><span class="small muted">Based on the saved map coordinate, not a verified Airbnb street address. A reported 0 m privacy radius does not confirm coordinate accuracy.</span></p>`;
+  }
+  else if(!l.user_address&&!permitAddresses.length)html+=`<p><b>Approximate location:</b> ${esc(l.approximate_address||l.location_name||'Street address unavailable')}</p>`;
   if(l.hotel_reports?.length)html+=`<p><b style="color:#c2410c">${l.hotel_source==='user_submitted'?'User submitted hotel':'Manually marked hotel'}</b></p><details><summary>Hotel reports and proof</summary>${hotelReportsHtml(l)}</details>`;
   if(l.not_hotel_tips?.length)html+=`<p><b>User-submitted tip: not a hotel</b> · Not verified</p><details><summary>Not-a-hotel tips</summary>${l.not_hotel_tips.map(t=>`<p>Reported address (not verified): ${esc(t.address||'Not provided')}<br><a href="${esc(t.source_url)}" target="_blank" rel="noopener">Public submission source ↗</a></p>`).join('')}</details>`;
   const detectedCount=Number(l.detected_permit_count??detectedPermitList(l).length);
@@ -848,7 +861,7 @@ function showListing(l, nearbyPermit=null) {
       &&p.parcel&&normalizeParcel(current.parcel)===normalizeParcel(p.parcel)
       &&Number.isFinite(adverseDate)&&Date.parse(current.issued)>adverseDate);
   });
-  const adverseWarning=adversePermits.length?`<p style="border-left:4px solid #dc2626;background:rgba(220,38,38,.12);padding:8px"><b style="color:#dc2626">⚠️ Likely unlicensed: ${adversePermits.map(p=>`${esc(p.permit_number)} — ${esc(p.status)}`).join('; ')}</b><br>No later-issued current permit is recorded on the same parcel. See permit details below.</p>`:'';
+  const adverseWarning=adversePermits.length?`<p style="border-left:4px solid #dc2626;background:rgba(220,38,38,.12);padding:8px"><b style="color:#dc2626">⚠️ Likely unlicensed: ${adversePermits.map(p=>`${esc(p.permit_number)}: ${esc(p.status)}`).join('; ')}</b><br>No later-issued current permit is recorded on the same parcel. See permit details below.</p>`:'';
   const connectedPermitMatch=l.matched_permits.length>0&&!needsParcelFallback(l);
   if(numberMode()&&connectedPermitMatch&&adverseWarning)html+=adverseWarning;
   if(numberMode()&&!connectedPermitMatch)html+=`<details open><summary>Registration-number screening</summary>${adverseWarning||`<p>${esc(spatialText)}</p>`}<p class="small muted">Registration source: ${listingSource}</p><p class="small muted">CompassKC supplies permit addresses and parcel identifiers. Listing registration screening uses permit numbers; green plots identify parcels linked to current permits.</p></details>`;
@@ -902,17 +915,18 @@ function showListing(l, nearbyPermit=null) {
   }
   const hotelForm=new URL('https://docs.google.com/forms/d/e/1FAIpQLScjN7eHKBjY3c8Iew6F08WYgHN30ozXlv9NHg2lpfBrABGXdg/viewform');hotelForm.searchParams.set('usp','pp_url');hotelForm.searchParams.set('entry.225332467',l.url);popup.getElement().querySelector('[data-hotel-form]').href=hotelForm.toString();
   */
+  PrivacyStreetCopy.bind(popup.getElement(),l);
   popup.getElement().querySelector('[data-select-host]').onclick=()=>{pendingHostKey=hostKey(l);$('hostPromptName').textContent=l.host_name||'Unknown host';$('hostConfirmDialog').showModal();};
-  if(!numberMode()||needsParcelFallback(l))renderListingAssociations(l,popup.getElement().querySelector('[data-property-associations]'));
+  if(!l.user_address&&(!numberMode()||needsParcelFallback(l)))renderListingAssociations(l,popup.getElement().querySelector('[data-property-associations]'));
   /* Disabled for the compact listing card: complaint and correction form bindings. Remove this comment to restore.
   bindComplaintButton(popup.getElement(),l.approximate_address||l.location_name,l.point,l.url);
   popup.getElement().querySelectorAll('[data-report]').forEach(button=>button.onclick=()=>Reporting.open(l,button.dataset.report));
   */
   const linkedPermits=[...l.matched_permits,...(nearbyPermit?[nearbyPermit]:[])];
   const links=[...new Map(linkedPermits.filter(p=>p.point&&distance(l.point,p.point)<=550).map(p=>[p.id,feature({type:'LineString',coordinates:[l.point,p.point]})])).values()];
-  sourceData('connections',collection(numberMode()?permitParcelLinks([l]):links));
+  sourceData('connections',collection(l.user_address?[]:numberMode()?permitParcelLinks([l]):links));
   if(numberMode()&&needsParcelFallback(l))renderFallbackAssociations(l,popup.getElement().querySelector('[data-property-associations]'));
-  popup.on('close',()=>{resetMatchInteraction();sourceData('connections',collection([]));if(selectedListing===l){selectedListing=null;updatePrivacy();}});
+  popup.on('close',()=>{resetMatchInteraction();sourceData('connections',collection([]));if(selectedListing===l){UserAddresses.select(null);selectedListing=null;updatePrivacy();}});
 }
 async function loadPermitDisplayParcels(){
   const base=await getJSON('data/permit_parcels.geojson');
@@ -920,7 +934,7 @@ async function loadPermitDisplayParcels(){
 }
 function propertyLocationGeometry(){return collection([...(permitLocationPoints?.features||[]),...((permitParcels||licensedParcels)?.features||[])]);}
 function permitParcelLinks(items,includeRejected=false){
-  return PermitProperties.links(items, propertyLocationGeometry(),includeRejected,nameMatchingData);
+  return PermitProperties.links(items.filter(l=>!l.user_address), propertyLocationGeometry(),includeRejected,nameMatchingData);
 }
 
 function fitVisible() {
@@ -929,6 +943,7 @@ function fitVisible() {
 }
 function prepareData() {
   balanceKey=null;
+  UserAddresses.apply(listings);
   PermitProperties.prepare(listings, permits, propertyLocationGeometry(), permitSavedDetails);
   const expiredMajorParcels=new Set(permits.filter(expiredMajorPermit).flatMap(p=>p.parcels||[p.parcel]).map(normalizeParcel));
   for(const f of permitParcels?.features||[])f.properties.expired_major_event=f.properties.permit_status==='expired'&&expiredMajorParcels.has(normalizeParcel(f.properties.parcel));
@@ -943,7 +958,7 @@ function prepareData() {
   }
   // Preserve true positions/radii; only spread stacked clickable marker centers.
   for(const group of groups.values()) group.forEach((l,i)=>{
-    l.displayPoint=group.length===1?l.point:[l.point[0]+Math.cos(i*2*Math.PI/group.length)*.00007,l.point[1]+Math.sin(i*2*Math.PI/group.length)*.000055];
+    l.displayPoint=l.user_address||group.length===1?l.point:[l.point[0]+Math.cos(i*2*Math.PI/group.length)*.00007,l.point[1]+Math.sin(i*2*Math.PI/group.length)*.000055];
   });
   const statusSelect=$('permitStatusFilter'),previousStatus=statusSelect.value;
   const statuses=[...new Set(['current','expired','revoked','suspended',...permits.map(p=>p.status||'unknown')])];
@@ -970,11 +985,11 @@ function prepareData() {
   $('hotelCount').textContent=`Likely hotels ${hotelCount.toLocaleString()}`;
   $('hotelCount').title=`${mappedHotelCount.toLocaleString()} mapped; ${(hotelCount-mappedHotelCount).toLocaleString()} without coordinates. Excluded from STR screening.`;
   updateInventoryEstimate();
-  $('permitInfoDate').textContent=`Permit snapshot as of ${report.as_of}.`;
+  $('permitInfoDate').textContent=PermitInventory.includeOther?`Permit snapshot as of ${report.as_of}.`:'Confirmed regular permit GIS snapshot: October 7, 2026. Temporary/event and unconfirmed permits excluded.';
   const otherStatuses=[['grand_total',permits.length],...[...permitStatusCounts].sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]))];
   $('otherPermitStatuses').replaceChildren(...otherStatuses.map(([status,count])=>{const row=document.createElement('p');row.className='permit-status-row'+(status==='current'?' permit-current':status==='grand_total'?' permit-grand-total':'');const label=document.createElement('span');label.textContent=status==='grand_total'?'Grand total · all permit records':status==='current'?'Current permits':permitStatusLabel(status);const value=document.createElement('strong');value.textContent=count.toLocaleString();row.append(label,value);return row;}));
 }
-async function getJSON(url) {const response=await fetch(url,{cache:'no-store'});if(!response.ok)throw Error(`${url}: HTTP ${response.status}`);return response.json();}
+async function getJSON(url) {if(PermitInventory.emptyGeometry(url))return collection([]);url=PermitInventory.resolve(url);const response=await fetch(url,{cache:'no-store'});if(!response.ok)throw Error(`${url}: HTTP ${response.status}`);return response.json();}
 async function reloadData() {
   [listings,permits,report]=await Promise.all(['listings','permits','build_report'].map(n=>getJSON(`data/${n}.json`)));
   if(report.spatial?.available)spatial=await getJSON('data/spatial.json');
@@ -1073,18 +1088,20 @@ async function init() {
   setupAppearanceAndDisclaimer();
   try {
     [listings,permits,report]=await Promise.all(['listings','permits','build_report'].map(n=>getJSON(`data/${n}.json`)));
+    try{listingPlotAddresses=await getJSON('data/listing_plot_addresses.json');}catch{}
     try{parcelManifest=await getJSON('data/parcels/manifest.json');}catch{parcelManifest={available:false};}
     if(parcelManifest?.available){licensedParcels=await getJSON('data/licensed_parcels.geojson');permitParcels=await loadPermitDisplayParcels();}
     try{[permitLocationPoints,permitSavedDetails]=await Promise.all([getJSON('data/permit_location_points.json'),getJSON('data/permit_saved_details.json')]);}catch{}
     try{[nameMatchingData,parcelMatchingData]=await Promise.all([getJSON('data/nicknames.json'),getJSON('data/parcel_matching_candidates.geojson')]);}catch{}
     if(report.spatial?.available)spatial=await getJSON('data/spatial.json');
     if(!spatial.available){for(const id of ['scopeOnly','likely','warningSymbols','difference','surplusHeatmap','heatRadius','heatIntensity']){$(id).checked=false;$(id).disabled=true;}}
+    await UserAddresses.load();
     prepareData();
-    const savedView=BrowserState.restore();
+    const savedView=BrowserState.restore();$('includeOtherSavedPermits').checked=PermitInventory.includeOther;
     if(numberMode()&&parcelManifest?.available&&!localStorage.getItem('kc_compass_green_parcels_v1')){ $('parcels').checked=true;localStorage.setItem('kc_compass_green_parcels_v1','1'); }
     map=new maplibregl.Map({container:'map',center:[-94.55410,39.12402],zoom:11,...savedView,style:{version:8,glyphs:'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',sources:{osm:{type:'raster',tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],tileSize:256,maxzoom:19,attribution:'© OpenStreetMap contributors'}},layers:[{id:'basemap',type:'raster',source:'osm'}]}});
     map.addControl(new maplibregl.NavigationControl(),'top-right');map.addControl(new maplibregl.ScaleControl());
-    map.on('load',addSourcesAndLayers);
+    map.on('load',()=>{addSourcesAndLayers();AreaStats.init(map);ParcelSearch.init(map);ParcelOutlines.init(map);UserAddresses.init(map);});
     map.once('load',()=>BrowserState.restoreUI());
     for(const el of document.querySelectorAll('#filters input:not(.rental-type),#filters select'))el.addEventListener(el.type==='search'?'input':'change',()=>{updateExploreClearButton();clearTimeout(refreshTimer);refreshTimer=setTimeout(update,el.type==='search'?180:0);});
     $('rentalTypes').addEventListener('toggle',()=>{$('rentalTypeHint').textContent=$('rentalTypes').open?'Click to hide':'Click to expand';});
@@ -1118,7 +1135,7 @@ async function init() {
     $('hostPromptYes').onclick=()=>{if(!pendingHostKey)return;selectedHost=pendingHostKey;selectedHostMetric='total';selectedPartyCombo='';selectedPartyRequireCapacity=false;$('partyOnly').checked=false;$('hostSearch').value='';$('hostConfirmDialog').close();popup?.remove();popup=null;update();fitVisible();};
     $('closePartyDisclaimer').onclick=()=>$('partyDisclaimer').close();
     $('resetZoom').onclick=()=>map.flyTo({center:[-94.55410,39.12402],zoom:11});
-    $('fitArea').onclick=()=>{if(!spatial.available)return;const b=new maplibregl.LngLatBounds();function visit(v){if(typeof v[0]==='number')b.extend(v);else v.forEach(visit);}spatial.boundary.features.forEach(f=>visit(f.geometry.coordinates));map.fitBounds(b,{padding:window.innerWidth>700?{left:330,right:65,top:40,bottom:45}:40});};
+    $('fitArea').onclick=()=>{if(!spatial.available)return;const b=new maplibregl.LngLatBounds();function visit(v){if(typeof v[0]==='number')b.extend(v);else v.forEach(visit);}spatial.boundary.features.forEach(f=>visit(f.geometry.coordinates));map.fitBounds(b,{padding:window.innerWidth>700?{left:Math.ceil($('filters').getBoundingClientRect().right)+15,right:65,top:40,bottom:45}:40});};
     $('reset').onclick=resetExploreFilters;
     $('refresh').onclick=reloadData;
     Reporting.setup();

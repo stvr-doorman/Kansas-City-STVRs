@@ -1,0 +1,35 @@
+{
+  "BE": {
+    "count": 150,
+    "source": "https://services6.arcgis.com/ZxotJxQo35Sx0jNg/arcgis/rest/services/Belton_Parcels/FeatureServer/49",
+    "queried_ids": 150,
+    "unique_parcels": 150
+  },
+  "WY": {
+    "count": 1210,
+    "source": "https://gisweb.wycokck.org/arcgis/rest/services/GISPUB/UGMAPS_4_V02/MapServer/0",
+    "queried_ids": 1211,
+    "unique_parcels": 1210
+  },
+  "CL": {
+    "count": 8243,
+    "source": "https://services7.arcgis.com/3c8lLdmDNevrTlaV/ArcGIS/rest/services/ClayCountyParcelService/FeatureServer/0",
+    "queried_ids": 8677,
+    "unique_parcels": 8242
+  },
+  "JA": {
+    "count": 14967,
+    "source": "https://jcgis.jacksongov.org/arcgis/rest/services/ParcelViewer/ParcelsAscendRelate/MapServer/1",
+    "queried_ids": 15458,
+    "unique_parcels": 14896
+  },
+  "PL": {
+    "count": 5704,
+    "source": "https://services.arcgis.com/KP64F8Xif9MkUwD4/arcgis/rest/services/Current_Parcels/FeatureServer/0",
+    "queried_ids": 5865,
+    "unique_parcels": 5704
+  },
+  "captured_at": "2026-10-07T02:14:34.921956+00:00",
+  "coverage_note": "Public sources only; Johnson County requires a GIS token and is not included. Platte source covers Parkville; completeness countywide is not established. Cass coverage uses Belton public parcels. Only parcels intersecting the outside 550 m band, with representative points outside city, retained. Full original boundaries displayed.",
+  "unique_parcels": 30202
+}

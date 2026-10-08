@@ -1,0 +1,44 @@
+{
+  "listing_map": {
+    "listings": 1272,
+    "area_rows": 184,
+    "parcel_search": "passed",
+    "inventory_records": 4476,
+    "page_errors": [],
+    "missing_runtime_files": []
+  },
+  "worst_case_map": {
+    "confirmed_permits": 709,
+    "default_other_permits": false,
+    "switching": "passed",
+    "page_errors": [],
+    "missing_runtime_files": []
+  },
+  "residential_neighborhood_impact": {
+    "listings": 1272,
+    "area_rows": 104,
+    "parcel_search": "passed",
+    "inventory_records": 4476,
+    "page_errors": [],
+    "missing_runtime_files": [],
+    "confirmed_current_permits": 709,
+    "mapped_confirmed_plots": 630,
+    "neighborhoods": 184,
+    "property_dots": false,
+    "percentage_bubble_zoom_checks": [
+      8.5,
+      11,
+      14
+    ],
+    "overall_percentage_zoom": 7,
+    "overall_percentage_label": "0.5%",
+    "overall_filtered_entire_place_listings": 833,
+    "overall_residential_plots": 154751
+  },
+  "savannah_offline": {
+    "saved_records": 62034,
+    "external_requests": [],
+    "page_errors": [],
+    "missing_runtime_files": []
+  }
+}
