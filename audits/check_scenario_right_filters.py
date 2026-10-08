@@ -1,0 +1,10 @@
+from playwright.sync_api import sync_playwright
+with sync_playwright() as p:
+ b=p.chromium.launch(channel='msedge',headless=False);page=b.new_page(viewport={'width':1500,'height':1000});errors=[];page.on('pageerror',lambda e:errors.append(str(e)));page.route('https://unpkg.com/maplibre-gl@3.6.0/dist/maplibre-gl.js',lambda r:r.fulfill(path='residential_neighborhood_impact/vendor/maplibre-gl.js',content_type='application/javascript'));page.goto('http://localhost:8765/worst_case.html');page.wait_for_function("typeof Scenario!=='undefined'&&Scenario.rows.length>0",timeout=90000)
+ assert page.locator('#modelResults input[type=checkbox]').count()==0
+ assert page.locator('#scenarioPanelBody input[type=checkbox],#scenarioPanelBody input[type=range]').count()==0
+ assert page.locator('#scenarioAdvanced #parcelSizePercentile').count()==1
+ page.locator('#scenarioAdvanced summary').click();assert page.input_value('#parcelSizePercentile')=='99';page.uncheck('#showPlots');assert page.evaluate("Scenario.map.getLayoutProperty('scenario-plot-line','visibility')")=='visible';assert page.evaluate("Scenario.map.getPaintProperty('scenario-plot-line','line-opacity')")==1
+ page.eval_on_selector('#parcelSizePercentile',"e=>{e.value=95;e.dispatchEvent(new Event('input'))}");assert '95.00' in page.locator('#parcelSizeValue').inner_text()
+ page.screenshot(path='audits/scenario_right_filters_desktop.png');page.locator('#scenarioAdvanced summary').click();page.set_viewport_size({'width':390,'height':844});page.wait_for_timeout(400)
+ a=page.locator('#scenarioAdvanced').bounding_box();side=page.locator('#scenarioPanel').bounding_box();assert side['x']+side['width']<=a['x'];assert a['y']>=page.locator('#modelResults').bounding_box()['y']+page.locator('#modelResults').bounding_box()['height'];page.locator('#scenarioAdvanced summary').click();assert page.locator('#parcelSizePercentile').is_visible();page.screenshot(path='audits/scenario_right_filters_mobile.png');assert not errors,errors;print('Right collapsible controls, clean scenario sidebar, size filter, persistent parcel outlines, desktop/mobile: passed');b.close()

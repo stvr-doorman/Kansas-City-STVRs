@@ -1,0 +1,50 @@
+{
+  "as_of": "2026-10-07",
+  "cutoff": "2026-10-07T17:21:59.576313-05:00",
+  "cutoff_timezone": "America/Chicago",
+  "source": "https://mapd.kcmo.org/kcgis/rest/services/DataLayers/MapServer/34",
+  "captured_at": "2026-10-07T22:22:05.000712+00:00",
+  "gis_features": 1008,
+  "confirmed_current_regular_permits": 709,
+  "saved_current_permits": 733,
+  "saved_current_not_confirmed": [
+    "NSD-STR-01634",
+    "NSD-STR-01639",
+    "NSD-STR-01942",
+    "NSD-STR-01944",
+    "NSD-STR-01993",
+    "NSD-STR-02651",
+    "NSD-STR-02718",
+    "NSD-STR-02742",
+    "NSD-STR-02786",
+    "NSD-STR-02850",
+    "NSD-STR-02867",
+    "NSD-STR-02878",
+    "NSD-STR-02885",
+    "NSD-STR-02891",
+    "NSD-STR-02896",
+    "NSD-STR-02897",
+    "NSD-STR-02900",
+    "NSD-STR-02919",
+    "NSD-STR-02943",
+    "NSD-STR-02969",
+    "NSD-STR-02970",
+    "NSD-STR-02971",
+    "NSD-STR-02972",
+    "NSD-STR-02973",
+    "NSD-STR-02976",
+    "NSD-STR-02977",
+    "NSD-STR-03009"
+  ],
+  "confirmed_not_saved_current": [
+    "NSD-STR-02988",
+    "NSD-STR-03044",
+    "NSD-STR-03047"
+  ],
+  "excluded_features_by_reason": {
+    "expired": 148,
+    "missing_expiration": 2
+  },
+  "temporary_event_records_in_saved_inventory": 626,
+  "selection": "Issued or issued subject to conditions; issue date on/before snapshot; expiration strictly after snapshot; no temporary/event permits. Missing GIS records remain unconfirmed, not proven invalid."
+}

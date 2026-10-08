@@ -1,0 +1,21 @@
+{
+  "source_records": 203623,
+  "unique_parcels": 203622,
+  "searchable_parcels": 203620,
+  "missing_geometry": 2,
+  "sample_parcel": "100029",
+  "sample_address": "9204 N Holmes Ct",
+  "checks": [
+    "GIS index deduplication",
+    "actual residential code counts for all areas",
+    "all/residential/unknown partition",
+    "live UI GIS denominators",
+    "address / ID / APN / owner searches",
+    "search independent of Airbnb filters",
+    "selected geometry identical to original capture",
+    "city viewer link",
+    "no-result and clear handling",
+    "mobile parcel search"
+  ],
+  "page_errors": []
+}

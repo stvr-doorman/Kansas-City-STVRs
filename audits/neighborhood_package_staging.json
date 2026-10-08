@@ -1,0 +1,1 @@
+{"path": "C:\\Users\\micha\\Kansas-City-STVRs-1\\audits\\packaging_builds\\neighborhood_20261007_224436\\residential_neighborhood_impact", "validation": {"files": 1039, "total_bytes": 236513973, "largest_file": "data/gis_parcels/search_index.json.gz", "largest_bytes": 17385557, "missing_local_html_dependencies": [], "compressed_assets_verified": 38, "file_limit_bytes": 26214400}}

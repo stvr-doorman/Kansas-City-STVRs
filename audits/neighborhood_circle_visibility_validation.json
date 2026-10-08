@@ -1,0 +1,18 @@
+[
+  {
+    "directory": "residential_neighborhood_impact",
+    "ready_seconds": 0.93,
+    "expected": 123,
+    "rendered": 123,
+    "missing": [],
+    "errors": []
+  },
+  {
+    "directory": "standalone_pages/residential_neighborhood_impact",
+    "ready_seconds": 1.13,
+    "expected": 123,
+    "rendered": 123,
+    "missing": [],
+    "errors": []
+  }
+]

@@ -1,0 +1,23 @@
+{
+  "test": "Visible Edge / Playwright, all non-local requests blocked",
+  "records": 62034,
+  "licensed_str_exact_filter": 383,
+  "checks": [
+    "All ten saved layer/table record counts",
+    "Layer visibility",
+    "Property search and source-field popups",
+    "Field filters and zero-match status filters",
+    "Paginated supporting and geographic tables",
+    "Table text search",
+    "Local bookmarks",
+    "License-status chart",
+    "Ground distance measurement",
+    "CSV, GeoJSON and PNG downloads",
+    "Desktop and mobile layouts"
+  ],
+  "external_requests": 0,
+  "javascript_errors": 0,
+  "console_errors": 0,
+  "independent_source_id_validation": true,
+  "limitations": "Independent reconstruction, not fully feature-identical Esri Map Viewer. See README.md."
+}

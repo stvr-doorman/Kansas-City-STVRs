@@ -1,0 +1,38 @@
+{
+  "listing_map": {
+    "files": 1077,
+    "total_bytes": 280535351,
+    "largest_file": "data/gis_parcels/search_index.json.gz",
+    "largest_bytes": 17385557,
+    "missing_local_html_dependencies": [],
+    "compressed_assets_verified": 65,
+    "file_limit_bytes": 26214400
+  },
+  "worst_case_map": {
+    "files": 1078,
+    "total_bytes": 280553071,
+    "largest_file": "data/gis_parcels/search_index.json.gz",
+    "largest_bytes": 17385557,
+    "missing_local_html_dependencies": [],
+    "compressed_assets_verified": 65,
+    "file_limit_bytes": 26214400
+  },
+  "residential_neighborhood_impact": {
+    "files": 1043,
+    "total_bytes": 239775099,
+    "largest_file": "data\\gis_parcels\\search_index.json.gz",
+    "largest_bytes": 17385557,
+    "missing_local_html_dependencies": [],
+    "compressed_assets_verified": 38,
+    "file_limit_bytes": 26214400
+  },
+  "savannah_offline": {
+    "files": 4963,
+    "total_bytes": 69553810,
+    "largest_file": "data/1/features_004.json.gz",
+    "largest_bytes": 1686144,
+    "missing_local_html_dependencies": [],
+    "compressed_assets_verified": 0,
+    "file_limit_bytes": 26214400
+  }
+}

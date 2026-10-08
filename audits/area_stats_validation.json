@@ -1,0 +1,71 @@
+{
+  "source_reconciliation": {
+    "neighborhood": {
+      "areas": 185,
+      "expected_areas": 185,
+      "bad": 0,
+      "airbnbs": 839,
+      "licensed_plots": 630,
+      "permit_only_areas": 17,
+      "empty_shown": false
+    },
+    "zip": {
+      "areas": 42,
+      "expected_areas": 42,
+      "bad": 0,
+      "airbnbs": 839,
+      "licensed_plots": 630,
+      "permit_only_areas": 5,
+      "empty_shown": false
+    },
+    "council": {
+      "areas": 6,
+      "expected_areas": 6,
+      "bad": 0,
+      "airbnbs": 839,
+      "licensed_plots": 630,
+      "permit_only_areas": 0,
+      "empty_shown": false
+    },
+    "plan": {
+      "areas": 18,
+      "expected_areas": 18,
+      "bad": 0,
+      "airbnbs": 839,
+      "licensed_plots": 630,
+      "permit_only_areas": 0,
+      "empty_shown": false
+    },
+    "tract": {
+      "areas": 143,
+      "expected_areas": 143,
+      "bad": 0,
+      "airbnbs": 839,
+      "licensed_plots": 630,
+      "permit_only_areas": 11,
+      "empty_shown": false
+    },
+    "county": {
+      "areas": 3,
+      "expected_areas": 3,
+      "bad": 0,
+      "airbnbs": 839,
+      "licensed_plots": 630,
+      "permit_only_areas": 0,
+      "empty_shown": false
+    }
+  },
+  "checks": [
+    "independent activation, opacity and labels",
+    "unique current licensed plot totals",
+    "empty-area suppression and permit-only retention",
+    "actual residential GIS parcel denominators and listing/plot ratios",
+    "listing filters do not change plot counts",
+    "scope disabled percentages unavailable",
+    "edge buffer housing scope",
+    "CSV counts and percentages",
+    "reset defaults",
+    "mobile controls"
+  ],
+  "page_errors": []
+}

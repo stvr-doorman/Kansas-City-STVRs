@@ -1,0 +1,26 @@
+[
+  {
+    "directory": "residential_neighborhood_impact",
+    "counts": {
+      "10": 246,
+      "5": 244,
+      "100": 246
+    },
+    "zip_full_features": 166,
+    "aggregate_zoom": 9.5,
+    "labels": true,
+    "errors": []
+  },
+  {
+    "directory": "standalone_pages/residential_neighborhood_impact",
+    "counts": {
+      "10": 246,
+      "5": 244,
+      "100": 246
+    },
+    "zip_full_features": 166,
+    "aggregate_zoom": 9.5,
+    "labels": true,
+    "errors": []
+  }
+]

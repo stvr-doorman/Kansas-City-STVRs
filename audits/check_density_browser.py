@@ -1,0 +1,51 @@
+from playwright.sync_api import sync_playwright
+import json
+with sync_playwright() as p:
+ b=p.chromium.launch(channel="msedge",headless=False)
+ page=b.new_page(viewport={"width":1500,"height":1000});errors=[]
+ page.on("pageerror",lambda e:errors.append(str(e)))
+ page.goto("http://localhost:8765",wait_until="domcontentloaded")
+ page.wait_for_function("typeof AreaStats!== 'undefined' && AreaStats.rows.length>0",timeout=90000)
+ for s in ["#dismissFirstVisit","#denyCookies"]:
+  if page.locator(s).is_visible():page.locator(s).click()
+ assert not page.locator("#filters").evaluate("e=>e.classList.contains('collapsed')")
+ assert not page.locator("#advancedFilters").evaluate("e=>e.open")
+ page.locator('#residentialImpactOptions>summary').click()
+ page.uncheck('#showUnreliableAreas')
+ relaxed=page.evaluate("AreaStats.rowsByLayer.get('neighborhood').map(r=>r.properties)")
+ assert all(r['primary_all']>=70 and r['primary_residential']>=80 and r['unknown_share']<=15 for r in relaxed)
+ assert any(r['percent']>1 for r in relaxed)
+ page.eval_on_selector('#densityAll',"e=>{e.value=80;e.dispatchEvent(new Event('input'))}")
+ page.eval_on_selector('#densityResidential',"e=>{e.value=90;e.dispatchEvent(new Event('input'))}")
+ page.eval_on_selector('#densityUnknown',"e=>{e.value=10;e.dispatchEvent(new Event('input'))}")
+ strict=page.evaluate("AreaStats.rowsByLayer.get('neighborhood').map(r=>r.properties)")
+ assert len(strict)<len(relaxed)
+ previous={r['area_id']:r for r in relaxed}
+ assert all(r['percent']==previous[r['area_id']]['percent'] for r in strict)
+ page.check('#showUnreliableAreas')
+ full=page.evaluate("AreaStats.rowsByLayer.get('neighborhood').length")
+ assert full>len(relaxed)
+ for k in ['zip','council','plan','tract','county']:page.check('#areaEnable-'+k)
+ page.wait_for_timeout(300)
+ assert page.evaluate("AreaStats.rowsByLayer.size")==6
+ page.locator('#advancedFilters>summary').click()
+ assert page.locator('#search').is_visible()
+ page.locator('#advancedFilters>summary').click()
+ for k in ['zip','council','plan','tract','county']:page.uncheck('#areaEnable-'+k)
+ page.check('#densityFocusEnabled')
+ page.uncheck('#showUnreliableAreas')
+ page.locator('#filters .panel-body').evaluate('e=>e.scrollTop=0')
+ page.locator('#filters').evaluate('e=>e.scrollTop=0')
+ page.wait_for_timeout(600)
+ assert page.evaluate("AreaStats.rowsByLayer.get('neighborhood').length")==len(strict)
+ page.screenshot(path='audits/density_preview.png')
+ mobile=b.new_page(viewport={"width":390,"height":844})
+ mobile.goto('http://localhost:8765',wait_until='domcontentloaded')
+ mobile.wait_for_function("typeof AreaStats!=='undefined'&&AreaStats.rows.length>0",timeout=90000)
+ assert not mobile.locator('#filters').evaluate("e=>e.classList.contains('collapsed')")
+ for s in ['#dismissFirstVisit','#denyCookies']:
+  if mobile.locator(s).is_visible():mobile.locator(s).click()
+ mobile.screenshot(path='audits/density_mobile_preview.png')
+ assert not errors,errors
+ print(json.dumps(dict(relaxed=len(relaxed),strict=len(strict),all_areas=full,errors=errors)))
+ b.close()

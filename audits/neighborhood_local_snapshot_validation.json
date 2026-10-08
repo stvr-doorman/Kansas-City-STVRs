@@ -1,0 +1,72 @@
+[
+  {
+    "directory": "residential_neighborhood_impact",
+    "first_labels_seconds": 0.6,
+    "font_requests_blocked": true,
+    "outside_requests_blocked": true,
+    "temporary_failure_recovered": true,
+    "zoom_checks": [
+      {
+        "zoom": 7,
+        "mode": "overall",
+        "names": 246
+      },
+      {
+        "zoom": 9,
+        "mode": "overall",
+        "names": 246
+      },
+      {
+        "zoom": 9.5,
+        "mode": "neighborhood",
+        "names": 246
+      },
+      {
+        "zoom": 11,
+        "mode": "neighborhood",
+        "names": 193
+      },
+      {
+        "zoom": 15,
+        "mode": "neighborhood",
+        "names": 6
+      }
+    ],
+    "page_errors": []
+  },
+  {
+    "directory": "standalone_pages/residential_neighborhood_impact",
+    "first_labels_seconds": 0.59,
+    "font_requests_blocked": true,
+    "outside_requests_blocked": true,
+    "temporary_failure_recovered": true,
+    "zoom_checks": [
+      {
+        "zoom": 7,
+        "mode": "overall",
+        "names": 246
+      },
+      {
+        "zoom": 9,
+        "mode": "overall",
+        "names": 246
+      },
+      {
+        "zoom": 9.5,
+        "mode": "neighborhood",
+        "names": 246
+      },
+      {
+        "zoom": 11,
+        "mode": "neighborhood",
+        "names": 193
+      },
+      {
+        "zoom": 15,
+        "mode": "neighborhood",
+        "names": 6
+      }
+    ],
+    "page_errors": []
+  }
+]
